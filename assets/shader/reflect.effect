@@ -96,6 +96,7 @@ void main() {
   baseuv = baseuv * scale;
   
   float c1 = texture2D(texture2, baseuv).x;
+  c1 = smoothstep(0.23, 0.0, c1);
   color = vec3(c1);
   
   gl_FragColor = vec4(color, 1.0);
