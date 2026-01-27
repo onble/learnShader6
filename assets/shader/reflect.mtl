@@ -11,6 +11,11 @@
     "0": {
       "defines": {
         "USE_TEXTURE": true
+      },
+      "props": {
+        "texture2": {
+          "__uuid__": "affbd5bb-4a3c-4455-a10a-193e2ad9a608"
+        }
       }
     }
   }

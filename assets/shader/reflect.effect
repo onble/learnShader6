@@ -71,20 +71,32 @@ in vec4 v_color;
 
 void main() {
   vec3 color = vec3(0.0);
-  // 弄个t接收cc_time.x, *= 0.6是因为正常速太快，变慢点
-  float t = cc_time.x * 0.6;
   
-  // v_uv0 + t * vec2(.5,.1) 这里的t是上面的时间，会持续增大的一个数值
-  // vec2(.5,.1) 是我随便写的一个方向向量，方向*时间 作为uv的偏移
-  // 噪声图设置 WrapMode = Repeat 否则偏移值超过vec2(1.,1.)之后就取不到值了，要改成repeat才可以取值
-  vec2 off1 = texture2D(texture2, v_uv0 + t * vec2(0.5, 0.1)).xy;
-  // 偏移值缩放0.1倍，不然波纹太过分了
-  off1 *= 0.01;
+  // // 弄个t接收cc_time.x, *= 0.6是因为正常速太快，变慢点
+  // float t = cc_time.x * 0.6;
   
-  color += texture2D(texture, off1 + v_uv0).xyz;
+  // // v_uv0 + t * vec2(.5,.1) 这里的t是上面的时间，会持续增大的一个数值
+  // // vec2(.5,.1) 是我随便写的一个方向向量，方向*时间 作为uv的偏移
+  // // 噪声图设置 WrapMode = Repeat 否则偏移值超过vec2(1.,1.)之后就取不到值了，要改成repeat才可以取值
+  // vec2 off1 = texture2D(texture2, v_uv0 + t * vec2(0.5, 0.1)).xy;
+  // // 偏移值缩放0.1倍，不然波纹太过分了
+  // off1 *= 0.01;
   
-  // 参数0-1是正好 从黑到白的，用-.5->1.3这个范围，色值就是不太黑到不太白，免得颜色太极端
-  color *= smoothstep(-0.5, 1.3, v_uv0.y) - 0.3;
+  // color += texture2D(texture, off1 + v_uv0).xyz;
+  
+  // // 参数0-1是正好 从黑到白的，用-.5->1.3这个范围，色值就是不太黑到不太白，免得颜色太极端
+  // color *= smoothstep(-0.5, 1.3, v_uv0.y) - 0.3;
+  
+  // gl_FragColor = vec4(color, 1.0);
+  
+  // baseuv做变换对噪声图取值
+  vec2 baseuv = v_uv0;
+  // 让噪声图x轴重复四次，y轴重复三次
+  vec2 scale = vec2(4.0, 3.0);
+  baseuv = baseuv * scale;
+  
+  float c1 = texture2D(texture2, baseuv).x;
+  color = vec3(c1);
   
   gl_FragColor = vec4(color, 1.0);
 }
