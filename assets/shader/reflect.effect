@@ -73,11 +73,14 @@ void main() {
   vec3 color = vec3(0.0);
   // 弄个t接收cc_time.x, *= 0.6是因为正常速太快，变慢点
   float t = cc_time.x * 0.6;
+  // + t * vec2(.5,.1)
   
-  // 对噪声图取样x通道，显示在屏幕上
-  color += texture2D(texture2, v_uv0).x;
+  vec2 off1 = texture2D(texture2, v_uv0).xy;
+  // 偏移值缩放0.1倍，不然波纹太过分了
+  off1 *= 0.1;
+  
+  color += texture2D(texture, off1 + v_uv0).xyz;
   
   gl_FragColor = vec4(color, 1.0);
-  
 }
 }%
