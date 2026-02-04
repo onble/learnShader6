@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "boxBlur",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "6b5cd6c8-824c-4f89-914c-571710f39ed0"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}
