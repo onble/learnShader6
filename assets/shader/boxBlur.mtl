@@ -9,6 +9,11 @@
   "_techniqueIndex": 0,
   "_techniqueData": {
     "0": {
+      "props": {
+        "texture": {
+          "__uuid__": "8b6337b3-cb2d-411a-b202-d1e8913f1b05"
+        }
+      },
       "defines": {
         "USE_TEXTURE": true
       }
