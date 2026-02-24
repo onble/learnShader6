@@ -13,6 +13,12 @@ techniques:
         properties:
           texture: { value: white }
           alphaThreshold: { value: 0.5 }
+          // 放大镜中心位置 (归一化坐标 0-1)
+          magnifierPos: { value: [0.5, 0.5] }
+          // 放大镜半径 (归一化 0-1)
+          magnifierRadius: { value: 0.2 }
+          // 放大倍数
+          magnifierScale: { value: 1.2 }
 
 }%
 
@@ -63,10 +69,14 @@ in vec2 v_uv0;
 
 uniform sampler2D texture;
 // 放大镜参数
+uniform Constants1 {
+  vec2 magnifierPos;
+  float magnifierRadius;
+  float magnifierScale;
+};
 
 void main() {
   vec4 o = vec4(1, 1, 1, 1);
-  vec2 magnifierPos = vec2(0.5, 0.5);
   
   // 计算当前像素到放大镜中心的距离
   float distance = distance(v_uv0, magnifierPos);
@@ -75,11 +85,11 @@ void main() {
   vec2 uv = v_uv0;
   
   // 如果在放大镜范围内，修改 UV 坐标实现放大效果
-  if (distance < 0.3) {
+  if (distance < magnifierRadius) {
     // 将 UV 坐标转换为以放大镜中心为原点的坐标
     vec2 delta = uv - magnifierPos;
     // 缩小 UV 偏移量实现放大效果
-    delta = delta / 1.2;
+    delta = delta / magnifierScale;
     // 还原为原坐标系
     uv = magnifierPos + delta;
   }
