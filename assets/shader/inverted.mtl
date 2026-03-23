@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "inverted",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "eb20b34b-65ae-4ee1-9496-855856dfdc0f"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}
