@@ -1,0 +1,133 @@
+// Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+
+CCEffect %{
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white }
+          alphaThreshold: { value: 0.5 }
+
+}%
+
+
+CCProgram vs %{
+precision highp float;
+
+#include <cc-global>
+#include <cc-local>
+
+in vec3 a_position;
+in vec4 a_color;
+out vec4 v_color;
+
+#if USE_TEXTURE
+  in vec2 a_uv0;
+  out vec2 v_uv0;
+#endif
+
+void main() {
+  vec4 pos = vec4(a_position, 1);
+  
+  #if CC_USE_MODEL
+    pos = cc_matViewProj * cc_matWorld * pos;
+  #else
+    pos = cc_matViewProj * pos;
+  #endif
+  
+  #if USE_TEXTURE
+    v_uv0 = a_uv0;
+  #endif
+  
+  v_color = a_color;
+  
+  gl_Position = pos;
+}
+}%
+
+
+CCProgram fs %{
+precision highp float;
+
+#include <alpha-test>
+#include <texture>
+#include <cc-global>
+
+in vec4 v_color;
+
+#if USE_TEXTURE
+  in vec2 v_uv0;
+  uniform sampler2D texture;
+#endif
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  
+  // 四个角的值
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  
+  // 平滑插值
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for(int i = 0; i < 5; i ++ ) {
+    value += amplitude * noise(p);
+    p *= 2.0;
+    amplitude *= 0.5;
+  }
+  return value;
+}
+
+// 水波计算函数
+float waterRipple(vec2 uv, float time) {
+  float wave = sin(uv.x * 0.5 + time * 1.0) * 0.5;
+  wave += sin(uv.y * 0.3 + time * 1.0 * 0.7) * 0.3;
+  wave += noise(uv * 0.1 + vec2(time * 0.1)) * 0.2;
+  
+  return wave * 0.2;
+}
+
+void main() {
+  
+  float time = cc_time.x;
+  
+  // 1. 计算当前UV的水波偏移
+  float ripple = waterRipple(v_uv0, time);
+  
+  // 2. 纹理采样偏移（让水面纹理跟随水波流动）
+  vec2 offsetUV = v_uv0 + vec2(ripple * 0.1, ripple * 0.05);
+  
+  // vec4 texColor = CCSampleWithAlphaSeparated(texture, offsetUV);
+  vec4 texColor = texture2D(texture, offsetUV);
+  
+  // 3. 水面颜色处理：基础蓝色 + 波纹高光
+  vec3 baseWaterColor = vec3(0.2, 0.5, 0.8); // 基础水色（蓝绿色）
+  vec3 highlightColor = vec3(0.8, 0.9, 1.0); // 波纹高光色
+  
+  // 根据波纹强度混合高光
+  float highlight = smoothstep(0.1, 0.2, ripple);
+  vec3 finalColor = mix(baseWaterColor, highlightColor, highlight);
+  
+  // 4. 最终颜色（结合纹理和水波效果）
+  gl_FragColor = vec4(texColor.rgb, texColor.a * v_color.a);
+}
+}%
