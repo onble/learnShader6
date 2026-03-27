@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "scaleUV",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "dbe827bd-6df3-4ee4-a9a0-1ab1a59892cd"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}
