@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "frac",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "b7a7b673-1b7f-4c51-be64-35d010fcdca7"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}
