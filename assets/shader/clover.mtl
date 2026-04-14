@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "clover",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "a6d6928f-9752-4311-af2c-c9a6497a9db7"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}
