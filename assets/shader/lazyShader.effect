@@ -180,19 +180,10 @@ void main() {
     // 1) 生成偏移量：noiseval ∈ [0,1]，先平移到 [-0.5, 0.5] 再缩放到很小的幅度（约 ±0.01）。
     // 通过调整第一个乘数，可以控制整体的抖动效果，如果加上时间⌚️，就会变成一个碎片掉的一个效果
     float off = 0.2 * (noiseval * 0.5 - 0.5);
-    // 2) 下面这段“5 点采样累加”看起来像想做轻量的抖动模糊/扩散（中心 + 四个对角）。
-    //    但注意：紧接着的单次采样会把 color 覆盖掉，所以在当前版本里这段对最终输出**没有影响**，
-    //    更像是保留的实验代码或未完成的混合逻辑。
-    float mul = 0.2;
-    color += texture2D(texture, uv + vec2(off, off)).xyz * mul;
-    color += texture2D(texture, uv + vec2(-off, off)).xyz * mul;
-    color += texture2D(texture, uv + vec2(off, - off)).xyz * mul;
-    color += texture2D(texture, uv + vec2(-off, - off)).xyz * mul;
-    color += texture2D(texture, uv + vec2(0.0, 0.0)).xyz * mul;
     
-    // 3) 最终输出：把整张图在 UV 上整体偏移 off（x/y 相同）后取样颜色。
+    // 2) 最终输出：把整张图在 UV 上整体偏移 off（x/y 相同）后取样颜色。
     color = texture2D(texture, uv + vec2(off)).xyz;
-    // 4) alpha 同步偏移取样，避免边缘/透明区域出现“颜色抖动但透明度不抖动”的分离感。
+    // 3) alpha 同步偏移取样，避免边缘/透明区域出现“颜色抖动但透明度不抖动”的分离感。
     tex.a = texture2D(texture, uv + vec2(off)).a;
     
     //tex.a = 1.;
@@ -226,12 +217,21 @@ void main() {
     //    最后乘一个很小的系数把结果拉回可控范围。
     color = pow(color * 10.0, vec3(10.0)) * 0.00000001;
   #elif EFFECT5
+    // EFFECT5：5 点采样的简易模糊/扩散（近似 box blur / bloom 取样核）。
+    // 思路：在当前像素周围取 4 个对角点 + 中心点，共 5 次采样并做平均（加权累加），
+    // 让细节变“糊”、边缘变柔和，也常作为发光/泛光的取样基础。
+    //
+    // 1) 采样偏移（单位：UV）。越大代表采样跨度越大，模糊越明显。
+    // 通过调整off的值，加上时间⌚️，就能实现一种花眼聚焦不准的效果
     float off = 0.02;
+    // 2) 每个采样的权重。这里 5 个点都用同一权重 0.2（刚好加起来等于 1）。
     float mul = 0.2;
+    // 3) 四个对角点采样（对称分布，减少方向性偏差）。
     color += texture2D(texture, uv + vec2(off, off)).xyz * mul;
     color += texture2D(texture, uv + vec2(-off, off)).xyz * mul;
     color += texture2D(texture, uv + vec2(off, - off)).xyz * mul;
     color += texture2D(texture, uv + vec2(-off, - off)).xyz * mul;
+    // 4) 中心点采样（保留主体亮度/颜色基准）。
     color += texture2D(texture, uv + vec2(0.0, 0.0)).xyz * mul;
   #elif EFFECT6
     float sum = 0.0;
