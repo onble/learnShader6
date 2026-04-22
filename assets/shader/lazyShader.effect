@@ -234,17 +234,31 @@ void main() {
     // 4) 中心点采样（保留主体亮度/颜色基准）。
     color += texture2D(texture, uv + vec2(0.0, 0.0)).xyz * mul;
   #elif EFFECT6
+    // EFFECT6：基于 alpha 邻域的“描边/边缘检测”高亮（用黄色标记轮廓附近的一圈）。
+    // 思路：用 5 点采样统计当前像素附近的透明度总和 sum，
+    // 然后对 sum 做一个“带通”（只在中间范围为 1，其余为 0），把这部分当作边缘掩码 n，
+    // 最后用 n 在“原图颜色”和“黄色”之间切换。
+    //
+    // 注意：最终 gl_FragColor 的 alpha 还是用原来的 tex.a（分支外采样得到的 alpha），
+    // 所以如果边缘区域 tex.a 很低（接近透明），你即使把 color 变黄也可能看不出来。
     float sum = 0.0;
+    // 1) 采样偏移（UV）。越大越“粗描边”，越小越细（但也更不明显）。
     float off = 0.02;
+    // 2) 统计邻域 alpha：四个对角 + 中心（5 点）。
     sum += texture2D(texture, uv + vec2(off, off)).a;
     sum += texture2D(texture, uv + vec2(-off, off)).a;
     sum += texture2D(texture, uv + vec2(off, - off)).a;
     sum += texture2D(texture, uv + vec2(-off, - off)).a;
     sum += texture2D(texture, uv + vec2(0.0, 0.0)).a;
     
+    // 3) 把 sum 映射成“边缘掩码”：
+    //    - 当 sum 很小（附近都透明）或很大（附近都不透明）时，n≈0
+    //    - 只有当 sum 处于中间范围（靠近透明/不透明交界）时，n 才会变大
     float checkf = 3.5;
     float n = smoothstep(0.3, checkf * 0.5, sum) - smoothstep(checkf * 0.5, checkf, sum);
+    // 4) 二值化：让边缘区域直接变成 0/1。
     n = step(0.1, n);
+    // 5) 用 n 进行颜色切换：n=1 输出黄色，n=0 输出原图。
     color = mix(colorhuang, tex.xyz, 1.0 - n);
   #elif EFFECT7
     vec2 uv7 = uv * 10000.0;
