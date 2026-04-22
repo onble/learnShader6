@@ -12,7 +12,8 @@
       "defines": {
         "USE_TEXTURE": true,
         "EFFECT1": false,
-        "EFFECT2": true
+        "EFFECT2": false,
+        "EFFECT12": true
       }
     }
   }

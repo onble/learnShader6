@@ -273,6 +273,17 @@ void main() {
     color = vec3(noiseval);
     tex.a = 1.0;
   #elif EFFECT12
+    // EFFECT12：真正的“马赛克/像素化”效果（pixelation）。
+    // 思路：把 uv 映射到屏幕像素坐标后，按固定块大小做量化（floor 到网格），
+    // 再把量化后的坐标映射回 uv 去采样纹理。这样每个块内所有像素都会取到同一个颜色。
+    //
+    // 马赛克块大小（单位：屏幕像素）。值越大，块越大、像素化越明显。
+    float pixelSize = 10.0;
+    vec2 pixelCoord = uv * u_resolution; // uv -> 像素坐标
+    vec2 mosaicCoord = floor(pixelCoord / pixelSize) * pixelSize; // 量化到块网格
+    vec2 mosaicUV = mosaicCoord / u_resolution; // 像素坐标 -> uv
+    tex = texture2D(texture, mosaicUV); // 一次采样同时得到 rgb+a
+    color = tex.xyz;
   #elif EFFECT13
   #elif EFFECT14
   #elif EFFECT15
