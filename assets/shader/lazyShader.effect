@@ -261,15 +261,32 @@ void main() {
     // 5) 用 n 进行颜色切换：n=1 输出黄色，n=0 输出原图。
     color = mix(colorhuang, tex.xyz, 1.0 - n);
   #elif EFFECT7
+    // EFFECT7：上半部分“马赛克/像素化”，下半部分保持原图的分割对比效果。
+    // 思路：
+    // - 先把 uv 放大到“像素坐标系”，再用 mod 做网格量化（把坐标吸附到格子左下角），
+    //   得到离散的 uv7，从而让一整块区域都采样到同一个纹理像素（形成马赛克块）。
+    // - 然后用 p = step(uv.y, 0.7) 做一条水平分界线：y <= 0.7 用马赛克，y > 0.7 用原图。
+    //
+    // 1) 把 uv 放大到更高的坐标尺度，便于用固定步长做“格子化”。
     vec2 uv7 = uv * 10000.0;
+    // 2) 网格量化：把坐标对齐到 300 的倍数（等价于把空间切成 300x300 的格子）。
+    // 调整最后一个参数可以控制马赛克的程度，越大越模糊
     uv7 = uv7 - mod(uv7, 300.0);
+    // 3) 缩放回 uv 空间（10000 * 0.0001 = 1），uv7 仍保持“阶梯状/离散”。
     uv7 *= 0.0001;
     
+    // 4) 用离散 uv7 采样：每个格子内所有像素取同一个颜色 -> 马赛克。
     tex = texture2D(texture, uv7);
     color = tex.xyz;
     
-    float p = step(uv.y, 0.7);
+    // 5) 分界线：step(edge, x)。这里 x=0.7、edge=uv.y：
+    //    - uv.y <= 0.7 -> p=1
+    //    - uv.y >  0.7 -> p=0
+    float p = step(uv.y, 0.1);
     
+    // 6) 用 p 在“马赛克(color/tex.a)”与“原图(texture2D(texture, uv))”之间切换：
+    //    p=1 选原图，p=0 选马赛克（所以实际是 y<=0.7 原图，y>0.7 马赛克）。
+    //    如果你想反过来，把 mix 的两个输入对调或改成 (1.0 - p)。
     color = mix(color, texture2D(texture, uv).xyz, p);
     
     tex.a = mix(tex.a, texture2D(texture, uv).a, p);
