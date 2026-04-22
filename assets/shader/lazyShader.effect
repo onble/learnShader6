@@ -1,0 +1,288 @@
+// Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.  
+// 参考:https://forum.cocos.org/t/topic/119791
+
+CCEffect %{
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white }
+          texture2: { value: white }
+          u_time: { value: 1 }
+          u_mouse: { value: [1.0, 1.0] }
+
+}%
+
+
+CCProgram vs %{
+precision highp float;
+
+#include <cc-global>
+#include <cc-local>
+
+attribute vec3 a_position;
+attribute lowp vec4 a_color;
+attribute mediump vec2 a_uv0;
+
+varying mediump vec2 v_uv0;
+varying lowp vec4 v_color;
+varying lowp vec4 v_wp;
+
+void main() {
+  mat4 mvp;
+  mvp = cc_matViewProj;
+  v_color = a_color;
+  gl_Position = mvp * vec4(a_position, 1);
+  v_wp = cc_matWorld * vec4(a_position, 1);
+  
+  v_uv0 = a_uv0;
+}
+
+}%
+
+
+CCProgram fs %{
+precision mediump float;
+
+uniform sampler2D texture;
+uniform sampler2D texture2;
+
+uniform Constants1 {
+  vec2 u_mouse;
+  float u_time;
+};
+
+varying mediump vec2 v_uv0;
+varying lowp vec4 v_color;
+varying lowp vec4 v_wp;
+
+#define resolution vec2(960.0, 640.0)
+#define u_resolution resolution
+#define time u_time
+#define iResolution resolution
+#define iTime time
+
+#define fragColor gl_FragColor
+#define fragCoord gl_FragCoord
+#define iMouse u_mouse
+#define PI 3.14159265358979323846
+#define MYUV vec2 uv = vec2(1.0 - v_uv0.x, v_uv0.y); vec2 st = uv;
+
+// Precision-adjusted variations of https://www.shadertoy.com/view/4djSRW
+#define NOISE fbm
+#define NUM_NOISE_OCTAVES 5
+float hash(float p) { p = fract(p * 0.011); p *= p + 7.5; p *= p + p; return fract(p); }
+float hash(vec2 p) {vec3 p3 = fract(vec3(p.xyx) * 0.13); p3 += dot(p3, p3.yzx + 3.333); return fract((p3.x + p3.y) * p3.z); }
+
+float noise(float x) {
+  float i = floor(x);
+  float f = fract(x);
+  float u = f * f * (3.0 - 2.0 * f);
+  return mix(hash(i), hash(i + 1.0), u);
+}
+
+float noise(vec2 x) {
+  vec2 i = floor(x);
+  vec2 f = fract(x);
+  
+  // Four corners in 2D of a tile
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  
+  // Simple 2D lerp using smoothstep envelope between the values.
+  // return vec3(mix(mix(a, b, smoothstep(0.0, 1.0, f.x)),
+  //			mix(c, d, smoothstep(0.0, 1.0, f.x)),
+  //			smoothstep(0.0, 1.0, f.y)));
+  
+  // Same code, with the clamps in smoothstep and common subexpressions
+  // optimized away.
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+float noise(vec3 x) {
+  const vec3 step = vec3(110, 241, 171);
+  
+  vec3 i = floor(x);
+  vec3 f = fract(x);
+  
+  // For performance, compute the base input to a 1D hash from the integer part of the argument and the 
+  // incremental change to the 1D based on the 3D -> 1D wrapping
+  float n = dot(i, step);
+  
+  vec3 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash(n + dot(step, vec3(0, 0, 0))), hash(n + dot(step, vec3(1, 0, 0))), u.x),
+  mix(hash(n + dot(step, vec3(0, 1, 0))), hash(n + dot(step, vec3(1, 1, 0))), u.x), u.y),
+  mix(mix(hash(n + dot(step, vec3(0, 0, 1))), hash(n + dot(step, vec3(1, 0, 1))), u.x),
+  mix(hash(n + dot(step, vec3(0, 1, 1))), hash(n + dot(step, vec3(1, 1, 1))), u.x), u.y), u.z);
+}
+
+float fbm(float x) {
+  float v = 0.0;
+  float a = 0.5;
+  float shift = float(100);
+  for(int i = 0; i < NUM_NOISE_OCTAVES; ++ i) {
+    v += a * noise(x);
+    x = x * 2.0 + shift;
+    a *= 0.5;
+  }
+  return v;
+}
+
+float fbm(vec2 x) {
+  float v = 0.0;
+  float a = 0.5;
+  vec2 shift = vec2(100);
+  // Rotate to reduce axial bias
+  mat2 rot = mat2(cos(0.5), sin(0.5), - sin(0.5), cos(0.50));
+  for(int i = 0; i < NUM_NOISE_OCTAVES; ++ i) {
+    v += a * noise(x);
+    x = rot * x * 2.0 + shift;
+    a *= 0.5;
+  }
+  return v;
+}
+
+float fbm(vec3 x) {
+  float v = 0.0;
+  float a = 0.5;
+  vec3 shift = vec3(100);
+  for(int i = 0; i < NUM_NOISE_OCTAVES; ++ i) {
+    v += a * noise(x);
+    x = x * 2.0 + shift;
+    a *= 0.5;
+  }
+  return v;
+}
+
+void main() {
+  MYUV;
+  vec3 color = vec3(0.0);
+  vec4 tex = texture2D(texture, uv);
+  float ffbm = fbm(st * 3.0 + fbm(st * 3.0 + fbm(st * 3.0)));
+  float noiseval = noise(uv * 500.0);
+  vec3 colorhuang = vec3(1.0, 1.0, 0.0);
+  #if EFFECT1
+    color = vec3(1.0);
+  #elif EFFECT2
+    // EFFECT2：噪声驱动的“画面轻微抖动/错位”效果（类似随机位移的 glitch/jitter）。
+    // 核心思路：先用高频噪声为每个像素生成一个很小的偏移量 off，然后用 (uv + off) 去采样纹理；
+    // 为了避免颜色与透明度错位，这里 alpha 也使用同样的偏移位置取样。
+    //
+    // 1) 生成偏移量：noiseval ∈ [0,1]，先平移到 [-0.5, 0.5] 再缩放到很小的幅度（约 ±0.01）。
+    float off = 0.02 * (noiseval * 0.5 - 0.5);
+    // 2) 下面这段“5 点采样累加”看起来像想做轻量的抖动模糊/扩散（中心 + 四个对角）。
+    //    但注意：紧接着的单次采样会把 color 覆盖掉，所以在当前版本里这段对最终输出**没有影响**，
+    //    更像是保留的实验代码或未完成的混合逻辑。
+    float mul = 0.2;
+    color += texture2D(texture, uv + vec2(off, off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(-off, off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(off, - off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(-off, - off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(0.0, 0.0)).xyz * mul;
+    
+    // 3) 最终输出：把整张图在 UV 上整体偏移 off（x/y 相同）后取样颜色。
+    color = texture2D(texture, uv + vec2(off)).xyz;
+    // 4) alpha 同步偏移取样，避免边缘/透明区域出现“颜色抖动但透明度不抖动”的分离感。
+    tex.a = texture2D(texture, uv + vec2(off)).a;
+    
+    //tex.a = 1.;
+  #elif EFFECT3
+    noiseval = noise(uv * 400.0);
+    color += tex.xyz;
+    color += vec3(noiseval) * vec3(1.0, 1.0, 0.0) * 0.5;
+  #elif EFFECT4
+    noiseval = fbm(uv * 8.0);
+    
+    color += tex.xyz;
+    color *= tex.a;
+    color = mix(color, vec3(noiseval), noiseval);
+    color = pow(color * 10.0, vec3(10.0)) * 0.00000001;
+  #elif EFFECT5
+    float off = 0.02;
+    float mul = 0.2;
+    color += texture2D(texture, uv + vec2(off, off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(-off, off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(off, - off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(-off, - off)).xyz * mul;
+    color += texture2D(texture, uv + vec2(0.0, 0.0)).xyz * mul;
+  #elif EFFECT6
+    float sum = 0.0;
+    float off = 0.02;
+    sum += texture2D(texture, uv + vec2(off, off)).a;
+    sum += texture2D(texture, uv + vec2(-off, off)).a;
+    sum += texture2D(texture, uv + vec2(off, - off)).a;
+    sum += texture2D(texture, uv + vec2(-off, - off)).a;
+    sum += texture2D(texture, uv + vec2(0.0, 0.0)).a;
+    
+    float checkf = 3.5;
+    float n = smoothstep(0.3, checkf * 0.5, sum) - smoothstep(checkf * 0.5, checkf, sum);
+    n = step(0.1, n);
+    color = mix(colorhuang, tex.xyz, 1.0 - n);
+  #elif EFFECT7
+    vec2 uv7 = uv * 10000.0;
+    uv7 = uv7 - mod(uv7, 300.0);
+    uv7 *= 0.0001;
+    
+    tex = texture2D(texture, uv7);
+    color = tex.xyz;
+    
+    float p = step(uv.y, 0.7);
+    
+    color = mix(color, texture2D(texture, uv).xyz, p);
+    
+    tex.a = mix(tex.a, texture2D(texture, uv).a, p);
+    
+  #elif EFFECT8
+    color = tex.xyz;
+    color = pow(color * 2.6, vec3(10.0));
+    color *= 0.2;
+    
+  #elif EFFECT9
+    float n = 960.0 / 640.0;
+    n = 591.0 / 200.0;
+    
+    color = tex.xyz;
+    
+    vec2 p = vec2(0.5, 0.8);
+    float r = 0.3;
+    vec2 off = uv - p;
+    //off.x /= n;
+    float d = length(vec2(off.x / n, off.y));
+    d = step(d, r);
+    
+    vec2 uv9 = p + off * 0.7;
+    vec4 tex9 = texture2D(texture, uv9);
+    color = tex9.xyz * tex9.a;
+    tex.a = max(tex.a, d);
+    color = mix(texture2D(texture, uv).xyz, color, d);
+    //tex.a = 1.;
+  #elif EFFECT10
+    color = tex.xyz;
+    color -= texture2D(texture, uv - 0.001).xyz;
+    color += 0.3;
+  #elif EFFECT11
+    color = vec3(noiseval);
+    tex.a = 1.0;
+  #elif EFFECT12
+  #elif EFFECT13
+  #elif EFFECT14
+  #elif EFFECT15
+  #elif EFFECT16
+  #elif EFFECT17
+  #elif EFFECT18
+    
+  #else
+    color = vec3(0.6);
+  #endif
+  gl_FragColor = vec4(color, tex.a);
+}
+}%

@@ -1,0 +1,19 @@
+{
+  "__type__": "cc.Material",
+  "_name": "lazyShader",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "7a9db97d-4441-4ac7-a67e-b04f41ca0e3a"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true,
+        "EFFECT1": false,
+        "EFFECT2": true
+      }
+    }
+  }
+}
