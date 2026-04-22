@@ -12,8 +12,17 @@
       "defines": {
         "USE_TEXTURE": true,
         "EFFECT1": false,
-        "EFFECT2": false,
-        "EFFECT12": true
+        "EFFECT2": true,
+        "EFFECT12": false,
+        "EFFECT3": false,
+        "EFFECT4": false,
+        "EFFECT5": false,
+        "EFFECT6": false,
+        "EFFECT7": false,
+        "EFFECT8": false,
+        "EFFECT9": false,
+        "EFFECT10": false,
+        "EFFECT11": false
       }
     }
   }
