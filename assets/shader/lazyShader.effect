@@ -340,10 +340,20 @@ void main() {
     color = mix(texture2D(texture, uv).xyz, color, d);
     //tex.a = 1.;
   #elif EFFECT10
+    // EFFECT10：简单的“边缘/高频差分”效果（类似 very cheap edge detect / emboss）。
+    // 思路：用当前像素颜色减去一个微小偏移位置的颜色，近似得到局部变化（梯度/边缘），
+    // 再加一个常量偏置把结果抬到可见范围。
+    //
+    // 1) 取当前像素颜色作为基准。
     color = tex.xyz;
+    // 2) 减去左下方向轻微偏移(uv - 0.001)的颜色：变化越大，差分越明显。
     color -= texture2D(texture, uv - 0.001).xyz;
+    // 3) 加偏置，避免整体偏暗（把差分结果平移到更可见的范围）。
     color += 0.3;
   #elif EFFECT11
+    // EFFECT11：噪声可视化（把 noiseval 直接显示成灰度噪声图）。
+    // 思路：noiseval 在分支外已由 noise(uv * 500) 计算得到，这里直接输出为灰度，
+    // 并强制 alpha = 1，使整张噪声图完全不透明、便于观察。
     color = vec3(noiseval);
     tex.a = 1.0;
   #elif EFFECT12
