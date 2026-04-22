@@ -12,10 +12,10 @@
       "defines": {
         "USE_TEXTURE": true,
         "EFFECT1": false,
-        "EFFECT2": true,
+        "EFFECT2": false,
         "EFFECT12": false,
         "EFFECT3": false,
-        "EFFECT4": false,
+        "EFFECT4": true,
         "EFFECT5": false,
         "EFFECT6": false,
         "EFFECT7": false,
