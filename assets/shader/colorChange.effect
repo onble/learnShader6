@@ -1,0 +1,192 @@
+// Copyright (c) 2017-2018 Xiamen Yaji Software Co., Ltd.
+// 参考:https://forum.cocos.org/t/topic/157418/
+
+CCEffect %{
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white }
+          alphaThreshold: { value: 0.5 }
+          targetHue: { value: 240, editor: { tooltip: "目标色相值" } }
+          hueRange: { value: 60, editor: { tooltip: "色相范围" } }
+          hueRotationAngle: { value: 120, editor: { tooltip: "色相旋转角度" } }
+
+}%
+
+
+CCProgram vs %{
+precision highp float;
+
+#include <cc-global>
+#include <cc-local>
+
+in vec3 a_position;
+in vec4 a_color;
+out vec4 v_color;
+
+#if USE_TEXTURE
+  in vec2 a_uv0;
+  out vec2 v_uv0;
+#endif
+
+void main() {
+  vec4 pos = vec4(a_position, 1);
+  
+  #if CC_USE_MODEL
+    pos = cc_matViewProj * cc_matWorld * pos;
+  #else
+    pos = cc_matViewProj * pos;
+  #endif
+  
+  #if USE_TEXTURE
+    v_uv0 = a_uv0;
+  #endif
+  
+  v_color = a_color;
+  
+  gl_Position = pos;
+}
+}%
+
+
+CCProgram fs %{
+precision highp float;
+
+#include <alpha-test>
+#include <texture>
+
+in vec4 v_color;
+
+#if USE_TEXTURE
+  in vec2 v_uv0;
+  uniform sampler2D texture;
+#endif
+uniform HueColor {
+  float targetHue;
+  float hueRange;
+  float hueRotationAngle;
+};
+
+vec3 rgbToHsv(vec3 rgb) {
+  float r = rgb.r;
+  float g = rgb.g;
+  float b = rgb.b;
+  
+  float minVal = min(min(r, g), b);
+  float maxVal = max(max(r, g), b);
+  float delta = maxVal - minVal;
+  
+  float h = 0.0;
+  float s = 0.0;
+  float v = maxVal;
+  
+  if (delta != 0.0) {
+    if (maxVal == r) {
+      h = (g - b) / delta;
+    } else if (maxVal == g) {
+      h = 2.0 + (b - r) / delta;
+    } else {
+      h = 4.0 + (r - g) / delta;
+    }
+    
+    h *= 60.0;
+    if (h < 0.0) {
+      h += 360.0;
+    }
+    
+    s = delta / maxVal;
+  }
+  
+  return vec3(h, s, v);
+}
+
+vec3 hsvToRgb(vec3 hsv) {
+  /**
+* HSV -> RGB（h 角度制：建议 [0, 360)，s/v：建议 [0, 1]）
+*
+* **实现原理（分段线性）**
+* - 把色相环按 60° 分成 6 个扇区：R→Y→G→C→B→M→R。
+* - 在每个扇区里，固定 V 与 S 后，RGB 在“去偏移”的基色空间 \((r',g',b')\) 是**分段线性插值**：
+*   其中一个通道为 0，另一个为 C，第三个在 0..C 之间线性变化（即 X）。
+* - 先算色度 C、第二大分量 X、亮度偏移 m；根据扇区把 (C, X, 0) 分配到 (r', g', b')；
+*   最后加上 m 抬升所有通道，使最终最大通道值等于 V。
+*/
+
+// 拆分输入：h=色相(角度)，s=饱和度，v=明度/亮度
+float h = hsv.x;
+float s = hsv.y;
+float v = hsv.z;
+
+// C = 色度(chroma) = V * S
+// - S=0 => C=0：没有“彩色成分”，最终会得到灰度 (V,V,V)
+// - S 越大 => C 越大：颜色越“纯”
+float c = v * s;
+
+// X：当前扇区内“第二大通道”的值（0..C），用三角波构造线性变化
+// 解释：令 t = h/60
+// - mod(t, 2) 把 t 折回到 [0,2)
+// - 1 - |mod(t,2) - 1| 形成 0→1→0 的三角波
+// - X = C * 三角波
+float x = c * (1.0 - abs(mod(h / 60.0, 2.0) - 1.0));
+
+// m = V - C：把 (r',g',b') 共同上移的偏移量
+// 因为在 (r',g',b') 中最大值为 C，加 m 后最大值变为 C+m = V，从而满足“明度”为 V。
+float m = v - c;
+
+// 先得到去偏移的 (r', g', b')（范围 0..C），最后统一加 m 得到最终 RGB
+vec3 rgb;
+if (h >= 0.0 && h < 60.0) {
+  // 扇区 0：R 最大，G 线性上升，B 为 0   => (C, X, 0)
+  rgb = vec3(c, x, 0.0);
+} else if (h >= 60.0 && h < 120.0) {
+  // 扇区 1：G 最大，R 线性下降，B 为 0   => (X, C, 0)
+  rgb = vec3(x, c, 0.0);
+} else if (h >= 120.0 && h < 180.0) {
+  // 扇区 2：G 最大，B 线性上升，R 为 0   => (0, C, X)
+  rgb = vec3(0.0, c, x);
+} else if (h >= 180.0 && h < 240.0) {
+  // 扇区 3：B 最大，G 线性下降，R 为 0   => (0, X, C)
+  rgb = vec3(0.0, x, c);
+} else if (h >= 240.0 && h < 300.0) {
+  // 扇区 4：B 最大，R 线性上升，G 为 0   => (X, 0, C)
+  rgb = vec3(x, 0.0, c);
+} else {
+  // 扇区 5：[300,360) 以及兜底：R 最大，B 线性下降，G 为 0 => (C, 0, X)
+  rgb = vec3(c, 0.0, x);
+}
+
+// 加回 m：把最暗通道从 0 抬到 V-C，同时保持色度差为 C
+return rgb + vec3(m);
+}
+
+void main() {
+vec4 o = vec4(1, 1, 1, 1);
+
+#if USE_TEXTURE
+  o = texture2D(texture, v_uv0);
+#endif
+
+vec3 hsv = rgbToHsv(vec3(o.r, o.g, o.b));
+
+float minHue = targetHue - hueRange;
+float maxHue = targetHue + hueRange;
+
+if (hsv.x >= minHue && hsv.x <= maxHue) {
+  hsv.x += hueRotationAngle; // 色相旋转
+  
+  if (hsv.x > 360.0) {
+    hsv.x -= 360.0;
+  }
+}
+vec3 newColor = hsvToRgb(hsv);
+
+gl_FragColor = vec4(newColor, o.a) * v_color;
+}
+}%
