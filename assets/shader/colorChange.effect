@@ -75,32 +75,57 @@ uniform HueColor {
 };
 
 vec3 rgbToHsv(vec3 rgb) {
+  /**
+  * RGB -> HSV（rgb 分量建议在 [0,1]）
+  *
+  * **实现原理（用最大/最小通道求圆柱坐标）**
+  * - HSV 可看作把 RGB 立方体映射到“色相环 + 饱和度半径 + 明度高度”的圆柱坐标系。
+  * - **V(明度/亮度)** 取 RGB 三通道的最大值：\(V = \max(r,g,b)\)。
+  * - **C(色度/彩度)** 用最大最小差表示：\(C = \Delta = \max(r,g,b) - \min(r,g,b)\)。
+  *   它刻画“离灰度轴( r=g=b )的距离”，灰度时 \(\Delta=0\)。
+  * - **S(饱和度)** 定义为 \(S = C / V\)（当 \(V=0\) 或 \(C=0\) 时为 0）。
+  * - **H(色相角)** 由“哪个通道最大”决定所处扇区，再用另外两通道的相对差值在该扇区内做线性插值，
+*   最后乘 60° 并规整到 [0,360)。
+  */
+  
   float r = rgb.r;
   float g = rgb.g;
   float b = rgb.b;
   
+  // min/max 用于得到亮度 V 与色度 C(=delta)
   float minVal = min(min(r, g), b);
   float maxVal = max(max(r, g), b);
+  
+  // delta = C：最大与最小通道的差，灰度(无色相)时为 0
   float delta = maxVal - minVal;
   
+  // 默认输出：delta==0 时保持 h=0、s=0，v=maxVal（灰度退化）
   float h = 0.0;
   float s = 0.0;
   float v = maxVal;
   
   if (delta != 0.0) {
+    // 根据“哪个通道最大”确定色相所在扇区，并计算扇区内的位置
+    // 这里的 h 先以“扇区编号 + 小数偏移”的形式表示（单位：60° 的倍数）
     if (maxVal == r) {
+      // R 为最大：扇区在 [0,60) 或 [300,360)，用 (g-b)/delta 作为插值
       h = (g - b) / delta;
     } else if (maxVal == g) {
+      // G 为最大：扇区在 [60,180)，基准是 2，再加 (b-r)/delta 的偏移
       h = 2.0 + (b - r) / delta;
     } else {
+      // B 为最大：扇区在 [180,300)，基准是 4，再加 (r-g)/delta 的偏移
       h = 4.0 + (r - g) / delta;
     }
     
+    // 将“扇区倍数”转换为角度制（度）
     h *= 60.0;
     if (h < 0.0) {
+      // 当落在负角度（典型是 R 最大且 b>g）时，加 360° 规整到 [0,360)
       h += 360.0;
     }
     
+    // 饱和度：C 相对 V 的比例；V>0 时取 delta/maxVal
     s = delta / maxVal;
   }
   
@@ -166,27 +191,51 @@ if (h >= 0.0 && h < 60.0) {
 return rgb + vec3(m);
 }
 
+/**
+* 片元主函数：对“接近目标色相”的像素做色相旋转（Hue Rotation）。
+*
+* **颜色转换逻辑（为什么要 RGB ↔ HSV）**
+* - 在 RGB 空间里“旋转色相”并不直观，因为 RGB 三通道耦合在一起，难以只改变色相而尽量保持明度与饱和度。
+* - HSV 把颜色拆成：
+*   - H：色相（角度，决定颜色“是什么色”）
+*   - S：饱和度（颜色“有多纯”）
+*   - V：明度/亮度（颜色“有多亮”）
+* - 因此我们先把采样到的 RGB 转成 HSV，只在满足条件时修改 H，再转回 RGB 输出。
+*
+* **筛选逻辑**
+* - 用 `targetHue ± hueRange` 定义一个色相区间；只有当像素的 H 落在该区间内，才应用 `hueRotationAngle`。
+* - 这样可以做到“只改某一类颜色”（例如只改接近红色的区域），而不是全屏整体变色。
+*/
 void main() {
+// 默认颜色（未启用纹理时相当于白色）
 vec4 o = vec4(1, 1, 1, 1);
 
+// 可选：从纹理取样原始颜色（使用 UV 坐标）
 #if USE_TEXTURE
   o = texture2D(texture, v_uv0);
 #endif
 
+// RGB -> HSV：把“颜色”分解为 (色相H, 饱和度S, 明度V)
 vec3 hsv = rgbToHsv(vec3(o.r, o.g, o.b));
 
+// 定义需要被处理的色相窗口：目标色相附近 ± 范围
 float minHue = targetHue - hueRange;
 float maxHue = targetHue + hueRange;
 
+// 只有色相落在窗口内的像素才做旋转：hsv.x += hueRotationAngle
 if (hsv.x >= minHue && hsv.x <= maxHue) {
-  hsv.x += hueRotationAngle; // 色相旋转
+  hsv.x += hueRotationAngle; // 色相旋转：改变“是什么颜色”，尽量保留 S/V（纯度/亮度）
   
+  // 色相回绕：把角度保持在 [0,360) 附近，避免超过 360° 后不在预期范围
   if (hsv.x > 360.0) {
     hsv.x -= 360.0;
   }
 }
+
+// HSV -> RGB：回到显示/输出所需的 RGB 空间
 vec3 newColor = hsvToRgb(hsv);
 
+// 输出：保留原 alpha（纹理透明度），并与顶点色相乘（常用于整体变色/透明度/批次颜色调制）
 gl_FragColor = vec4(newColor, o.a) * v_color;
 }
 }%
