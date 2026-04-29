@@ -68,30 +68,45 @@ in vec4 v_color;
 void main() {
   
   // 描边逻辑开始
-  #if USE_TEXTURE
-    // 正确的像素大小 = 1 / 贴图尺寸
-    vec2 texelSize = vec2(1.0 / 440.0, 1.0 / 440.0);
-    vec2 uv = v_uv0;
-    
-    // 上下左右采样
-    vec4 col = texture2D(texture, uv);
-    vec4 up = texture2D(texture, uv + vec2(0, 1) * texelSize);
-    vec4 down = texture2D(texture, uv + vec2(0, - 1) * texelSize);
-    vec4 left = texture2D(texture, uv + vec2(-1, 0) * texelSize);
-    vec4 right = texture2D(texture, uv + vec2(1, 0) * texelSize);
-    
-    // 只提取透明度
-    float aUp = up.a;
-    float aDown = down.a;
-    float aLeft = left.a;
-    float aRight = right.a;
-    
-    // 当前透明，但周围有不透明 → 描边
-    if (col.a < 0.1 &&(aUp > 0.1 || aDown > 0.1 || aLeft > 0.1 || aRight > 0.1)) {
-      gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-      return;
+  // 正确的像素大小 = 1 / 贴图尺寸
+  vec2 texelSize = vec2(1.0 / 200.0, 1.0 / 133.0);
+  vec2 uv = v_uv0;
+  
+  // 上下左右采样
+  vec4 col = texture2D(texture, uv);
+  vec4 up = texture2D(texture, uv + vec2(0, 1) * texelSize);
+  vec4 down = texture2D(texture, uv + vec2(0, - 1) * texelSize);
+  vec4 left = texture2D(texture, uv + vec2(-1, 0) * texelSize);
+  vec4 right = texture2D(texture, uv + vec2(1, 0) * texelSize);
+  
+  // 只提取透明度
+  float aUp = up.a;
+  float aDown = down.a;
+  float aLeft = left.a;
+  float aRight = right.a;
+  
+  // // 当前透明，但周围有不透明 → 描边
+  // if (col.a < 0.1 &&(aUp > 0.1 || aDown > 0.1 || aLeft > 0.1 || aRight > 0.1)) {
+  //   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+  //   return;
+  // }
+  
+  // 检查周围2像素范围内是否有不透明像素
+  for(int x = -2; x <= 2; x ++ ) {
+    for(int y = -2; y <= 2; y ++ ) {
+      vec2 offset = vec2(x, y) * texelSize * 0.5;
+      vec4 col2 = texture2D(texture, uv + offset);
+      vec2 uv2 = uv + offset;
+      vec4 up2 = texture2D(texture, uv2 + vec2(0, 1) * texelSize);
+      vec4 down2 = texture2D(texture, uv2 + vec2(0, - 1) * texelSize);
+      vec4 left2 = texture2D(texture, uv2 + vec2(-1, 0) * texelSize);
+      vec4 right2 = texture2D(texture, uv2 + vec2(1, 0) * texelSize);
+      if (col2.a < 0.1 &&(up2.a > 0.1 || down2.a > 0.1 || left2.a > 0.1 || right2.a > 0.1)) {
+        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        return;
+      }
     }
-  #endif
+  }
   
   gl_FragColor = col;
 }
