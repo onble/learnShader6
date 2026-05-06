@@ -1,0 +1,28 @@
+{
+  "__type__": "cc.Material",
+  "_name": "fake3DMaterial",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "06094fce-37a9-4a56-899b-bd78df69b70b"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true,
+        "USE_FAKE3D": true
+      },
+      "props": {
+        "y_rot": 30,
+        "x_rot": 30,
+        "textureSize": {
+          "__type__": "cc.Vec2",
+          "x": 440,
+          "y": 440
+        },
+        "cull_back": 0
+      }
+    }
+  }
+}
