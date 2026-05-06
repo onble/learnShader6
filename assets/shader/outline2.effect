@@ -82,16 +82,22 @@ void main() {
   #if USE_TEXTURE
     CCTexture(texture, v_uv0, o);
     
+    vec4 finalColor = mix(outlineColor, o.rgba, o.a);
+    
     // 计算周围像素的 alpha 值
-    float alphaLeft = texture2D(texture, v_uv0 + vec2(outlineWidth, 0)).a;
-    float alphaRight = texture2D(texture, v_uv0 - vec2(outlineWidth, 0)).a;
-    float alphaTop = texture2D(texture, v_uv0 + vec2(0, outlineWidth)).a;
-    float alphaBottom = texture2D(texture, v_uv0 - vec2(0, outlineWidth)).a;
+    float alpha_Left = texture2D(texture, v_uv0 + vec2(outlineWidth, 0)).a;
+    float alpha_Right = texture2D(texture, v_uv0 + vec2(-outlineWidth, 0)).a;
+    float alpha_Top = texture2D(texture, v_uv0 + vec2(0, outlineWidth)).a;
+    float alpha_Bottom = texture2D(texture, v_uv0 + vec2(0, - outlineWidth)).a;
+    
+    float alpha_LeftTop = texture2D(texture, v_uv0 + vec2(outlineWidth, outlineWidth)).a;
+    float alpha_RightTop = texture2D(texture, v_uv0 + vec2(-outlineWidth, outlineWidth)).a;
+    float alpha_RightBottom = texture2D(texture, v_uv0 + vec2(-outlineWidth, - outlineWidth)).a;
+    float alpha_LeftBottom = texture2D(texture, v_uv0 + vec2(outlineWidth, - outlineWidth)).a;
     
     // 计算描边的 alpha 值
-    float outlineAlpha = alphaLeft + alphaRight + alphaTop + alphaBottom;
-    
-    vec4 finalColor = mix(outlineColor, o.rgba, o.a);
+    float outlineAlpha = alpha_Left + alpha_Right + alpha_Top + alpha_Bottom
+    + alpha_LeftTop + alpha_RightTop + alpha_RightBottom + alpha_LeftBottom;
     
     finalColor.a = outlineAlpha;
     

@@ -10,7 +10,8 @@
   "_techniqueData": {
     "0": {
       "defines": {
-        "USE_TEXTURE": true
+        "USE_TEXTURE": false,
+        "USE_ALPHA_TEST": false
       },
       "props": {
         "outlineColor": {
@@ -20,7 +21,10 @@
           "b": 15,
           "a": 255
         },
-        "outlineWidth": 0.02
+        "outlineWidth": 0.02,
+        "texture": {
+          "__uuid__": "00991c3a-1410-44de-8f6e-498488ccaed8"
+        }
       }
     }
   }
