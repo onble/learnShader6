@@ -46,4 +46,18 @@ export class SpineCtrl extends cc.Component {
     private getSpineCurrentTime(spine: sp.Skeleton): number {
         return spine.getCurrent(0).animationTime
     }
+
+    /**
+     * 传入spine与进度比例（注意初始要把spine的TimeScale设置为0）
+     * 参考:https://www.shuzhiduo.com/A/KE5QyDnL5L/#google_vignette
+     * @param spine 
+     * @param rate 
+     */
+    private updateSpine(spine: sp.Skeleton, rate: number) {
+        const track = spine.getCurrent(0);
+        const timeEnd = track.animationEnd;
+        const current = timeEnd * rate;
+        track.animationStart = current;
+        spine.setToSetupPose();
+    }
 }
