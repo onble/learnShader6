@@ -21,21 +21,31 @@ export class testCamera extends cc.Component {
     private _renderTexture() {
         // 将遮罩摄像拍摄的内容渲染到目标图片上
         const renderTexture = new cc.RenderTexture();
-        renderTexture.initWithSize(this.maskCamera.node.width, this.maskCamera.node.height);
-        const spriteFrame = new cc.SpriteFrame();
-        spriteFrame.setTexture(renderTexture);
-        spriteFrame.setFlipY(true);
+        const winSize = cc.view.getVisibleSize();
+        const realHeight = (828 / winSize.width) * winSize.height;
+        renderTexture.initWithSize(828, realHeight);
+        // const spriteFrame = new cc.SpriteFrame();
+        // spriteFrame.setTexture(renderTexture);
+        // spriteFrame.setFlipY(true);
         this.maskCamera.targetTexture = renderTexture;
-        this.targetSprite.spriteFrame = spriteFrame;
+        // this.targetSprite.spriteFrame = spriteFrame;
 
-        // 将摄像机拍摄内容，根据高度进行等比例缩小后放到目标图片上
-        const targetHeight = this.targetSprite.node.height;
-        const targetWidth = targetHeight * this.maskCamera.node.width / this.maskCamera.node.height;
-        renderTexture.width = targetWidth;
-        renderTexture.height = targetHeight;
+        // 计算目标图标应该显示的区域的x,y,width,height,然后将摄像机中的对应位置截出来
+        const targetRect = this.targetSprite.node.getBoundingBoxToWorld();
+        const targetX = targetRect.x;// 414-200 = 214
+        const targetY = targetRect.y - 200;// 1472/2 = 736 + 200 = 936 + 200 = 1136
+        const targetWidth = targetRect.width;
+        const targetHeight = targetRect.height;
+        console.warn(targetX, targetY, targetWidth, targetHeight);
+        // 将截出来的区域绘制到目标图片上
+        const targetSpriteFrame = new cc.SpriteFrame();
+        targetSpriteFrame.setTexture(renderTexture);
+        console.warn(renderTexture.width, renderTexture.height);
+        targetSpriteFrame.setFlipY(true);
+        console.warn(targetSpriteFrame.getRect())
+        targetSpriteFrame.setRect(new cc.Rect(0, 0, targetWidth, targetHeight));
 
-        this.targetSprite.node.width = targetWidth;
-        this.targetSprite.node.height = targetHeight;
+        this.targetSprite.spriteFrame = targetSpriteFrame;
     }
 
 

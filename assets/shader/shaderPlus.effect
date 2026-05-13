@@ -71,14 +71,14 @@ uniform sampler2D textureInput;
 void main() {
   
   vec4 inputValue = texture2D(textureInput, v_uv0);
-  gl_FragColor = inputValue.rgba;
-  // vec4 o = vec4(1, 1, 1, 1);
   
-  // #if USE_TEXTURE
-  //   CCTexture(texture, v_uv0, o);
-  // #endif
+  vec4 o = vec4(1, 1, 1, 1);
   
-  // o *= v_color;
+  #if USE_TEXTURE
+    CCTexture(texture, v_uv0, o);
+  #endif
+  
+  o *= v_color;
   
   // ALPHA_TEST(o);
   
@@ -87,5 +87,11 @@ void main() {
   // #else
   //   gl_FragColor = o.rgba;
   // #endif
+  
+  if (inputValue.a > 0.0) {
+    gl_FragColor = inputValue.rgba;
+  } else {
+    gl_FragColor = o.rgba;
+  }
 }
 }%
