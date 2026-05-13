@@ -11,7 +11,6 @@ export class testCamera extends cc.Component {
 
     onLoad() {
         this._renderTexture();
-
     }
 
     protected update(dt: number): void {
@@ -24,9 +23,7 @@ export class testCamera extends cc.Component {
         const winSize = cc.view.getVisibleSize();
         const realHeight = (828 / winSize.width) * winSize.height;
         renderTexture.initWithSize(828, realHeight);
-        // const spriteFrame = new cc.SpriteFrame();
-        // spriteFrame.setTexture(renderTexture);
-        // spriteFrame.setFlipY(true);
+
         this.maskCamera.targetTexture = renderTexture;
         // this.targetSprite.spriteFrame = spriteFrame;
 
@@ -40,12 +37,24 @@ export class testCamera extends cc.Component {
         // 将截出来的区域绘制到目标图片上
         const targetSpriteFrame = new cc.SpriteFrame();
         targetSpriteFrame.setTexture(renderTexture);
-        console.warn(renderTexture.width, renderTexture.height);
         targetSpriteFrame.setFlipY(true);
-        console.warn(targetSpriteFrame.getRect())
         targetSpriteFrame.setRect(new cc.Rect(0, 0, targetWidth, targetHeight));
 
         this.targetSprite.spriteFrame = targetSpriteFrame;
+    }
+
+    /**
+     * 获取节点在特定坐标系下的左下角点位置，基于设计尺寸 828×1472 进行偏移校正
+     * @param {cc.Node} node - 目标节点
+     * @returns {cc.Vec2} 节点左下角经偏移校正后的坐标点
+     */
+    private _getNodeLeftBootomPoint(node: cc.Node) {
+        const x = node.x;
+        const y = node.y;
+        const width = node.width;
+        const height = node.height;
+        const pos = new cc.Vec2(x - width / 2 + 828 / 2, y - height / 2 + 1472 / 2);
+        return pos;
     }
 
 
