@@ -21,28 +21,26 @@ export class testCamera2 extends cc.Component {
     }
 
     private _renderTexture() {
-        // 将遮罩摄像拍摄的内容渲染到目标图片上
         const renderTexture = new cc.RenderTexture();
         const winSize = cc.view.getVisibleSize();
-        const realHeight = (828 / winSize.width) * winSize.height;
-        renderTexture.initWithSize(828, realHeight);
+        // RT 像素尺寸（与摄像机渲到 RT 上的分辨率一致）
+        const texW = 828;
+        const texH = Math.floor((texW / winSize.width) * winSize.height);
+        renderTexture.initWithSize(texW, texH);
 
         this.maskCamera.targetTexture = renderTexture;
-        // this.targetSprite.spriteFrame = spriteFrame;
+        // 先写入 RT，再挂到 Sprite；否则会用未渲染的空白纹理
+        this.maskCamera.render();
+        this.maskCamera.targetTexture = null;
 
-        // 计算目标图标应该显示的区域的x,y,width,height,然后将摄像机中的对应位置截出来
-        const targetRect = this.targetSprite.node.getBoundingBoxToWorld();
-        const targetWidth = 828;
-        const targetHeight = 1472;
-        // 将截出来的区域绘制到目标图片上
+        // setRect 的宽高必须与 RenderTexture 实际像素尺寸一致，否则会 UV 错位，
+        // 再叠 setFlipY(true) 时很容易表现为整图「往上/往下偏了一截」。
         const targetSpriteFrame = new cc.SpriteFrame();
         targetSpriteFrame.setTexture(renderTexture);
         targetSpriteFrame.setFlipY(true);
-        targetSpriteFrame.setRect(new cc.Rect(0, 0, targetWidth, targetHeight));
+        targetSpriteFrame.setRect(new cc.Rect(0, 0, texW, texH));
 
         this.targetSprite.spriteFrame = targetSpriteFrame;
-        this.maskCamera.render();
-        this.maskCamera.targetTexture = null;
     }
 
     /**
