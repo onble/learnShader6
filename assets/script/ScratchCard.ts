@@ -27,13 +27,18 @@ export class ScratchCard extends cc.Component {
     private _accumSprite: cc.Sprite = null;
     private _captureCam: cc.Camera = null;
     private _ownsCaptureCamera = false;
+    /** 仅用于清 RT：无渲染组件，避免 camera.render() 无参遍历整场景踩到 _assembler 为空的节点 */
+    private _emptyRtClearRoot: cc.Node = null;
 
     onLoad() {
         this._initScratchAccumulation();
     }
 
     start() {
+        if (!this.graphics) return;
         this.graphics.fillColor = cc.Color.BLACK;
+        // 2.4：Graphics 在从未绘制时 _assembler 可能为 null，直接 camera.render(graphics.node) 会报错
+        this._warmUpGraphicsAssembler();
 
         this.node.on(cc.Node.EventType.TOUCH_START, this.onTouchStart, this);
         this.node.on(cc.Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
@@ -47,6 +52,10 @@ export class ScratchCard extends cc.Component {
 
         if (this._ownsCaptureCamera && this._captureCam && this._captureCam.node && this._captureCam.node.isValid) {
             this._captureCam.node.destroy();
+        }
+        if (this._emptyRtClearRoot && this._emptyRtClearRoot.isValid) {
+            this._emptyRtClearRoot.destroy();
+            this._emptyRtClearRoot = null;
         }
     }
 
@@ -83,6 +92,9 @@ export class ScratchCard extends cc.Component {
      */
     private mergeCurrentGraphicsIntoAccumTextureBeforeClear(): void {
         if (!this.graphics || !this._accumRT || !this._captureCam) return;
+        // 从未绘制或内部未就绪时跳过，避免 render-flow 读 null._assembler
+        const asm = (this.graphics as any)._assembler;
+        if (!asm) return;
 
         this._syncScratchCaptureCamera();
         this._captureCam.targetTexture = this._accumRT;
@@ -114,6 +126,11 @@ export class ScratchCard extends cc.Component {
             this._ownsCaptureCamera = true;
         }
 
+        const sceneRoot = cc.director.getScene() || this.node;
+        this._emptyRtClearRoot = new cc.Node('_ScratchRTClearRoot');
+        this._emptyRtClearRoot.parent = sceneRoot;
+        this._emptyRtClearRoot.group = gNode.group;
+
         this._captureCam.cullingMask = 1 << gNode.groupIndex;
         this._captureCam.backgroundColor = new cc.Color(0, 0, 0, 0);
         this._captureCam.alignWithScreen = false;
@@ -132,8 +149,20 @@ export class ScratchCard extends cc.Component {
         this._captureCam.targetTexture = this._accumRT;
         this._captureCam.clearFlags = cc.Camera.ClearFlags.COLOR as any;
         this._captureCam.backgroundColor = new cc.Color(0, 0, 0, 0);
-        this._captureCam.render();
+        // 勿调用无参 render()：会按 cullingMask 扫整场景，易触发其它节点上 _assembler 为 null
+        if (this._emptyRtClearRoot && this._emptyRtClearRoot.isValid) {
+            this._captureCam.render(this._emptyRtClearRoot);
+        }
         this._captureCam.targetTexture = null;
+    }
+
+    /** 触发 Graphics 创建 Assembler，避免首帧 / 首触前 manual render 崩溃 */
+    private _warmUpGraphicsAssembler(): void {
+        const g = this.graphics;
+        if (!g) return;
+        g.rect(0, 0, 0.01, 0.01);
+        g.fill();
+        g.clear();
     }
 
     private _syncScratchCaptureCamera(): void {
