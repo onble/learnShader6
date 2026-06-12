@@ -1,0 +1,26 @@
+{
+  "__type__": "cc.Material",
+  "_name": "water",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "86969409-5010-48fb-a01e-72d197470305"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      },
+      "props": {
+        "scale": 6,
+        "distortion": 0.15,
+        "edgeWidth": 0.07,
+        "edgeSoftness": 0.1,
+        "glowStrength": 1.5,
+        "flowStrength": 0.15,
+        "bubbleStrength": 0.12
+      }
+    }
+  }
+}

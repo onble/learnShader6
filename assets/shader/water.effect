@@ -1,0 +1,196 @@
+CCEffect %{
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+              blendSrc: src_alpha
+              blendDst: one_minus_src_alpha
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white }
+
+          baseColor: { value: [0.05, 0.55, 0.95, 1.0], editor: { type: color } }
+          shallowColor:
+            { value: [0.15, 0.75, 1.0, 1.0], editor: { type: color } }
+          edgeColor: { value: [0.35, 1.0, 0.95, 1.0], editor: { type: color } }
+
+          scale: { value: 5.5 }
+          speed: { value: 0.08 }
+          distortion: { value: 0.18 }
+
+          edgeWidth: { value: 0.08 }
+          edgeSoftness: { value: 0.12 }
+          glowStrength: { value: 1.35 }
+
+          flowStrength: { value: 0.18 }
+          bubbleStrength: { value: 0.18 }
+
+}%
+
+CCProgram vs %{
+precision highp float;
+
+#include <cc-global>
+#include <cc-local>
+
+attribute vec3 a_position;
+attribute vec2 a_uv0;
+attribute vec4 a_color;
+
+varying vec2 v_uv0;
+varying vec4 v_color;
+
+void main() {
+  vec4 pos = vec4(a_position, 1.0);
+  pos = cc_matWorld * pos;
+  gl_Position = cc_matViewProj * pos;
+  
+  v_uv0 = a_uv0;
+  v_color = a_color;
+}
+}%
+
+CCProgram fs %{
+precision highp float;
+
+#include <cc-global>
+
+varying vec2 v_uv0;
+varying vec4 v_color;
+
+uniform sampler2D texture;
+uniform HueColor {
+  vec4 baseColor;
+  vec4 shallowColor;
+  vec4 edgeColor;
+  
+  float scale;
+  float speed;
+  float distortion;
+  
+  float edgeWidth;
+  float edgeSoftness;
+  float glowStrength;
+  
+  float flowStrength;
+  float bubbleStrength;
+};
+
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
+vec2 hash22(vec2 p) {
+  float n = hash21(p);
+  return vec2(n, hash21(p + n));
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  
+  float a = hash21(i);
+  float b = hash21(i + vec2(1.0, 0.0));
+  float c = hash21(i + vec2(0.0, 1.0));
+  float d = hash21(i + vec2(1.0, 1.0));
+  
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 p) {
+  float v = 0.0;
+  float a = 0.5;
+  
+  for(int i = 0; i < 4; i ++ ) {
+    v += noise(p) * a;
+    p *= 2.0;
+    a *= 0.5;
+  }
+  
+  return v;
+}
+
+float voronoiEdge(vec2 p) {
+  vec2 g = floor(p);
+  vec2 f = fract(p);
+  
+  float d1 = 10.0;
+  float d2 = 10.0;
+  
+  for(int y = -1; y <= 1; y ++ ) {
+    for(int x = -1; x <= 1; x ++ ) {
+      vec2 lattice = vec2(float(x), float(y));
+      vec2 offset = hash22(g + lattice);
+      
+      offset = 0.5 + 0.5 * sin(cc_time.x * speed + 6.2831 * offset);
+      
+      vec2 r = lattice + offset - f;
+      float d = dot(r, r);
+      
+      if (d < d1) {
+        d2 = d1;
+        d1 = d;
+      } else if (d < d2) {
+        d2 = d;
+      }
+    }
+  }
+  
+  return sqrt(d2) - sqrt(d1);
+}
+
+void main() {
+  vec2 uv = v_uv0;
+  float t = cc_time.x;
+  
+  vec4 texColor = texture2D(texture, uv);
+  
+  vec2 flowUv = uv;
+  flowUv.x += fbm(uv * 3.0 + t * 0.06) * distortion;
+  flowUv.y += fbm(uv * 3.0 - t * 0.05) * distortion;
+  
+  vec2 p = flowUv * scale;
+  
+  float edge = voronoiEdge(p);
+  
+  float mainEdge = 1.0 - smoothstep(edgeWidth, edgeWidth + edgeSoftness, edge);
+  float glow = 1.0 - smoothstep(edgeWidth + 0.05, edgeWidth + 0.35, edge);
+  
+  float waterShade = fbm(uv * 2.5 + vec2(t * 0.02, - t * 0.015));
+  vec3 col = mix(baseColor.rgb, shallowColor.rgb, waterShade * 0.35);
+  
+  col += edgeColor.rgb * mainEdge * glowStrength;
+  col += edgeColor.rgb * glow * 0.35;
+  
+  float flowLine = sin((uv.x + fbm(uv * 5.0 + t * 0.08)) * 35.0 + uv.y * 18.0 + t * 1.5);
+  flowLine = smoothstep(0.92, 1.0, flowLine);
+  flowLine *= fbm(uv * 8.0 - t * 0.04);
+  
+  col += edgeColor.rgb * flowLine * flowStrength;
+  
+  vec2 buv = uv * 8.0;
+  vec2 cell = floor(buv);
+  vec2 f = fract(buv);
+  
+  vec2 rnd = hash22(cell);
+  float bubbleChance = step(0.78, rnd.x);
+  float radius = mix(0.06, 0.16, rnd.y);
+  
+  float d = length(f - rnd);
+  float bubbles = 1.0 - smoothstep(0.018, 0.035, abs(d - radius));
+  bubbles *= bubbleChance;
+  
+  col += edgeColor.rgb * bubbles * bubbleStrength;
+  
+  float alpha = texColor.a * baseColor.a * v_color.a;
+  
+  gl_FragColor = vec4(col, alpha);
+}
+}%
