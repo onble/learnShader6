@@ -61,8 +61,11 @@ uniform ScratchReveal {
 };
 
 void main() {
+  vec2 temp = v_uv0;
+  temp.y = 1.0 - temp.y;
+  vec2 maskUV = maskUVRect.xy + temp * maskUVRect.zw;
   
-  vec4 inputValue = texture2D(maskTexture, v_uv0);
+  vec4 inputValue = texture2D(maskTexture, maskUV);
   vec4 normalValue = texture2D(texture, v_uv0);
   
   vec4 o = vec4(1, 1, 1, 0);
