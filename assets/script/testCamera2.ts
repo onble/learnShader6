@@ -18,6 +18,9 @@ export class testCamera2 extends cc.Component {
     @property({ type: cc.Graphics, tooltip: CC_DEV && '每次提交后会被立即清空的临时笔迹' })
     private strokeGraphics: cc.Graphics = null;
 
+    @property({ type: cc.Sprite, tooltip: CC_DEV && '使用 scratchReveal 材质、按刮痕显示的内容' })
+    private revealSprite: cc.Sprite = null;
+
     @property({ tooltip: CC_DEV && 'RenderTexture 宽度；高度按可见区域比例计算' })
     private textureWidth = 828;
 
@@ -45,10 +48,48 @@ export class testCamera2 extends cc.Component {
         this._spriteFrame.setRect(new cc.Rect(0, 0, this._texW, this._texH));
         this.targetSprite.spriteFrame = this._spriteFrame;
 
+        if (this.revealSprite) {
+            this.revealSprite.node.active = true;
+            const material = this.revealSprite.getMaterial(0);
+            if (material) {
+                material.setProperty('maskTexture', this._renderTexture);
+                this.updateRevealUV();
+            } else {
+                cc.error('[testCamera2] revealSprite 没有设置 scratchReveal 材质');
+            }
+        }
+
         // 该 Camera 只由 commitStroke/resetTexture 手动触发。
         this.maskCamera.enabled = false;
         this.maskCamera.backgroundColor = new cc.Color(0, 0, 0, 0);
+    }
+
+    start() {
+        // 等所有渲染组件完成 assembler 初始化后再首次清屏。
+        this.updateRevealUV();
         this.resetTexture();
+    }
+
+    /**
+     * 将 card_open 的世界区域换算成整屏 RenderTexture 的 UV 区域。
+     */
+    private updateRevealUV() {
+        if (!this.revealSprite) return;
+
+        const material = this.revealSprite.getMaterial(0);
+        if (!material) return;
+
+        const rect = this.revealSprite.node.getBoundingBoxToWorld();
+        const screenWidth = Math.max(1, cc.visibleRect.width);
+        const screenHeight = Math.max(1, cc.visibleRect.height);
+
+        material.setProperty('maskUVRect', new cc.Vec4(
+            (rect.x - cc.visibleRect.bottomLeft.x) / screenWidth,
+            (rect.y - cc.visibleRect.bottomLeft.y) / screenHeight,
+            rect.width / screenWidth,
+            rect.height / screenHeight
+        ));
+        material.setProperty('maskThreshold', 0.01);
     }
 
     /**
@@ -60,16 +101,18 @@ export class testCamera2 extends cc.Component {
         const renderRoot = this.strokeGraphics && this.strokeGraphics.node;
         if (!renderRoot || !renderRoot.isValid) return;
 
-        this.maskCamera.targetTexture = this._renderTexture;
-        // 不清 COLOR，保留之前已经写入 RenderTexture 的所有路径。
-        this.maskCamera.clearFlags = (
-            cc.Camera.ClearFlags.DEPTH | cc.Camera.ClearFlags.STENCIL
-        ) as any;
-        this.maskCamera.render(renderRoot);
-        this.maskCamera.targetTexture = null;
-
-        if (this.strokeGraphics) {
-            this.strokeGraphics.clear();
+        try {
+            this.maskCamera.targetTexture = this._renderTexture;
+            // 不清 COLOR，保留之前已经写入 RenderTexture 的所有路径。
+            this.maskCamera.clearFlags = (
+                cc.Camera.ClearFlags.DEPTH | cc.Camera.ClearFlags.STENCIL
+            ) as any;
+            this.maskCamera.render(renderRoot);
+        } finally {
+            this.maskCamera.targetTexture = null;
+            if (this.strokeGraphics) {
+                this.strokeGraphics.clear();
+            }
         }
     }
 
@@ -83,22 +126,22 @@ export class testCamera2 extends cc.Component {
             this.strokeGraphics.clear();
         }
 
-        this.maskCamera.targetTexture = this._renderTexture;
-        this.maskCamera.clearFlags = (
-            cc.Camera.ClearFlags.COLOR |
-            cc.Camera.ClearFlags.DEPTH |
-            cc.Camera.ClearFlags.STENCIL
-        ) as any;
+        const oldCullingMask = this.maskCamera.cullingMask;
+        try {
+            this.maskCamera.targetTexture = this._renderTexture;
+            this.maskCamera.clearFlags = (
+                cc.Camera.ClearFlags.COLOR |
+                cc.Camera.ClearFlags.DEPTH |
+                cc.Camera.ClearFlags.STENCIL
+            ) as any;
 
-        // 用已经清空的 Graphics 节点触发一次渲染，避免 reset 时画入其他遮罩内容。
-        const renderRoot = this.strokeGraphics && this.strokeGraphics.node;
-        if (renderRoot && renderRoot.isValid) {
-            this.maskCamera.render(renderRoot);
-        } else {
+            // 不渲染任何节点，只让 Camera 清除 RenderTexture。
+            this.maskCamera.cullingMask = 0;
             this.maskCamera.render();
+        } finally {
+            this.maskCamera.cullingMask = oldCullingMask;
+            this.maskCamera.targetTexture = null;
         }
-
-        this.maskCamera.targetTexture = null;
     }
 
     onDestroy() {

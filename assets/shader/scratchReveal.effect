@@ -1,0 +1,82 @@
+CCEffect %{
+techniques:
+  - passes:
+      - vert: vs
+        frag: fs
+        blendState:
+          targets:
+            - blend: true
+        rasterizerState:
+          cullMode: none
+        properties:
+          texture: { value: white }
+          maskTexture: { value: black }
+          maskThreshold: { value: 0.01 }
+          maskUVRect: { value: [0.0, 0.0, 1.0, 1.0] }
+
+}%
+
+CCProgram vs %{
+precision highp float;
+
+#include <cc-global>
+#include <cc-local>
+
+in vec3 a_position;
+in vec4 a_color;
+in vec2 a_uv0;
+
+out vec4 v_color;
+out vec2 v_uv0;
+
+void main() {
+  vec4 pos = vec4(a_position, 1.0);
+  
+  #if CC_USE_MODEL
+    pos = cc_matViewProj * cc_matWorld * pos;
+  #else
+    pos = cc_matViewProj * pos;
+  #endif
+  
+  gl_Position = pos;
+  v_color = a_color;
+  v_uv0 = a_uv0;
+}
+}%
+
+CCProgram fs %{
+precision highp float;
+
+#include <texture>
+
+in vec4 v_color;
+in vec2 v_uv0;
+
+uniform sampler2D texture;
+uniform sampler2D maskTexture;
+
+uniform ScratchReveal {
+  vec4 maskUVRect;
+  float maskThreshold;
+};
+
+void main() {
+  
+  vec4 inputValue = texture2D(maskTexture, v_uv0);
+  vec4 normalValue = texture2D(texture, v_uv0);
+  
+  vec4 o = vec4(1, 1, 1, 0);
+  
+  #if USE_TEXTURE
+    CCTexture(texture, v_uv0, o);
+  #endif
+  
+  o *= v_color;
+  
+  if (inputValue.a > 0.0) {
+    gl_FragColor = normalValue.rgba;
+  } else {
+    gl_FragColor = o.rgba;
+  }
+}
+}%

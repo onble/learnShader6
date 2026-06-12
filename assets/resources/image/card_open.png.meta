@@ -7,9 +7,9 @@
   "filterMode": "bilinear",
   "premultiplyAlpha": false,
   "genMipmaps": false,
-  "packable": true,
-  "width": 924,
-  "height": 704,
+  "packable": false,
+  "width": 462,
+  "height": 352,
   "platformSettings": {},
   "subMetas": {
     "card_open": {
