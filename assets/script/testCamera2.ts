@@ -1,85 +1,117 @@
 const { ccclass, property } = cc._decorator;
 
 /**
- * 用「双缓冲 RenderTexture」做笔迹叠加：
- * - 每帧摄像机拍到的是：仍贴着上一帧 readRT 的 Sprite + 你新画的一层（须与 Sprite 在同一棵子树里且被该摄像机照到）
- * - 写入 writeRT，再交换 read/write；下一帧继续叠
+ * 将临时 Graphics 笔迹增量写入同一张 RenderTexture。
  *
- * 若图一直干净：多半是 maskCamera 的 cullingMask 没有包含 targetSprite 所在分组，
- * 或 captureRoot 里没有包含「显示上一帧的 Sprite」节点。
+ * RenderTexture 只在初始化/重置时清除颜色；后续提交时只清深度和模板，
+ * 因此旧像素会一直保留。Graphics 每次提交后立即清空，不会累积路径几何。
  */
 @ccclass
 export class testCamera2 extends cc.Component {
 
-    @property({ type: cc.Sprite, tooltip: CC_DEV && '显示累积结果的 Sprite（须在 captureRoot 子树内）' })
+    @property({ type: cc.Sprite, tooltip: CC_DEV && '显示持久化笔迹纹理的 Sprite' })
     private targetSprite: cc.Sprite = null;
 
-    @property({ type: cc.Camera, tooltip: CC_DEV && '用于拍到「底图 + 新笔」的摄像机' })
+    @property({ type: cc.Camera, tooltip: CC_DEV && '只渲染笔迹节点的离屏摄像机' })
     private maskCamera: cc.Camera = null;
 
-    /** 若指定，则只 render 该节点子树（推荐）；不填则 maskCamera.render() 无参，依赖 cullingMask 照到整层 */
-    @property({ type: cc.Node, tooltip: CC_DEV && '须包含 targetSprite 节点 + 笔刷/Graphics 等' })
-    private captureRoot: cc.Node = null;
+    @property({ type: cc.Graphics, tooltip: CC_DEV && '每次提交后会被立即清空的临时笔迹' })
+    private strokeGraphics: cc.Graphics = null;
 
-    /** 是否每帧在 update 里拍（很耗性能，调试可关） */
-    @property
-    private renderEveryFrame = true;
+    @property({ tooltip: CC_DEV && 'RenderTexture 宽度；高度按可见区域比例计算' })
+    private textureWidth = 828;
 
-    private _readRT: cc.RenderTexture = null;
-    private _writeRT: cc.RenderTexture = null;
+    private _renderTexture: cc.RenderTexture = null;
     private _spriteFrame: cc.SpriteFrame = null;
     private _texW = 0;
     private _texH = 0;
 
     onLoad() {
-        const winSize = cc.view.getVisibleSize();
-        this._texW = 828;
-        this._texH = Math.max(1, Math.floor((this._texW / winSize.width) * winSize.height));
+        if (!this.targetSprite || !this.maskCamera) {
+            cc.error('[testCamera2] targetSprite 和 maskCamera 必须设置');
+            return;
+        }
 
-        this._readRT = new cc.RenderTexture();
-        this._readRT.initWithSize(this._texW, this._texH);
-        this._writeRT = new cc.RenderTexture();
-        this._writeRT.initWithSize(this._texW, this._texH);
+        const winSize = cc.view.getVisibleSize();
+        this._texW = Math.max(1, Math.floor(this.textureWidth));
+        this._texH = Math.max(1, Math.floor(this._texW / winSize.width * winSize.height));
+
+        this._renderTexture = new cc.RenderTexture();
+        this._renderTexture.initWithSize(this._texW, this._texH);
 
         this._spriteFrame = new cc.SpriteFrame();
-        this._spriteFrame.setTexture(this._readRT);
+        this._spriteFrame.setTexture(this._renderTexture);
         this._spriteFrame.setFlipY(true);
         this._spriteFrame.setRect(new cc.Rect(0, 0, this._texW, this._texH));
+        this.targetSprite.spriteFrame = this._spriteFrame;
 
-        if (this.targetSprite) {
-            this.targetSprite.spriteFrame = this._spriteFrame;
-        }
-    }
-
-    protected update(dt: number): void {
-        if (this.renderEveryFrame) {
-            this._renderTexture();
-        }
-    }
-
-    private _renderTexture() {
-        if (!this.maskCamera || !this.targetSprite || !this._readRT || !this._writeRT) return;
-
-        // 此时 Sprite 仍使用 _readRT，摄像机渲到 _writeRT，避免「同一张 RT 又读又写」导致全空或花屏
-        this.maskCamera.targetTexture = this._writeRT;
-        this.maskCamera.clearFlags = cc.Camera.ClearFlags.COLOR as any;
+        // 该 Camera 只由 commitStroke/resetTexture 手动触发。
+        this.maskCamera.enabled = false;
         this.maskCamera.backgroundColor = new cc.Color(0, 0, 0, 0);
+        this.resetTexture();
+    }
 
-        if (this.captureRoot && this.captureRoot.isValid) {
-            this.maskCamera.render(this.captureRoot);
+    /**
+     * 把当前临时笔迹叠加进纹理。调用结束后 Graphics 中不再保留任何三角面。
+     */
+    public commitStroke() {
+        if (!this._renderTexture || !this.maskCamera) return;
+
+        const renderRoot = this.strokeGraphics && this.strokeGraphics.node;
+        if (!renderRoot || !renderRoot.isValid) return;
+
+        this.maskCamera.targetTexture = this._renderTexture;
+        // 不清 COLOR，保留之前已经写入 RenderTexture 的所有路径。
+        this.maskCamera.clearFlags = (
+            cc.Camera.ClearFlags.DEPTH | cc.Camera.ClearFlags.STENCIL
+        ) as any;
+        this.maskCamera.render(renderRoot);
+        this.maskCamera.targetTexture = null;
+
+        if (this.strokeGraphics) {
+            this.strokeGraphics.clear();
+        }
+    }
+
+    /**
+     * 清除纹理中保存的全部路径。
+     */
+    public resetTexture() {
+        if (!this._renderTexture || !this.maskCamera) return;
+
+        if (this.strokeGraphics) {
+            this.strokeGraphics.clear();
+        }
+
+        this.maskCamera.targetTexture = this._renderTexture;
+        this.maskCamera.clearFlags = (
+            cc.Camera.ClearFlags.COLOR |
+            cc.Camera.ClearFlags.DEPTH |
+            cc.Camera.ClearFlags.STENCIL
+        ) as any;
+
+        // 用已经清空的 Graphics 节点触发一次渲染，避免 reset 时画入其他遮罩内容。
+        const renderRoot = this.strokeGraphics && this.strokeGraphics.node;
+        if (renderRoot && renderRoot.isValid) {
+            this.maskCamera.render(renderRoot);
         } else {
             this.maskCamera.render();
         }
 
         this.maskCamera.targetTexture = null;
+    }
 
-        this._spriteFrame.setTexture(this._writeRT);
-        this._spriteFrame.setFlipY(true);
-        this._spriteFrame.setRect(new cc.Rect(0, 0, this._texW, this._texH));
-        this.targetSprite.spriteFrame = this._spriteFrame;
-
-        const t = this._readRT;
-        this._readRT = this._writeRT;
-        this._writeRT = t;
+    onDestroy() {
+        if (this.maskCamera && this.maskCamera.targetTexture === this._renderTexture) {
+            this.maskCamera.targetTexture = null;
+        }
+        if (this._spriteFrame) {
+            this._spriteFrame.destroy();
+            this._spriteFrame = null;
+        }
+        if (this._renderTexture) {
+            this._renderTexture.destroy();
+            this._renderTexture = null;
+        }
     }
 }
