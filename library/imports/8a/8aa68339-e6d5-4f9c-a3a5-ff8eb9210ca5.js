@@ -77,9 +77,9 @@ var HologramLoading2D = /** @class */ (function (_super) {
         }
         var safeDuration = Math.max(0.001, this.duration);
         var linearProgress = Math.min(1, (this._elapsed - Math.max(0, this.delay)) / safeDuration);
-        // smoothstep 缓动：起止阶段更柔和，中段仍保持明确的扫描速度。
-        var easedProgress = linearProgress * linearProgress * (3 - 2 * linearProgress);
-        this.setProgress(easedProgress);
+        // Shader 内部按参考视频的真实时间比例拆分能量柱、角色显形点和
+        // Glitch 残影阶段，因此这里必须传入线性时间，不能再次缓动。
+        this.setProgress(linearProgress);
         if (linearProgress >= 1) {
             if (this.loop) {
                 this._elapsed = 0;

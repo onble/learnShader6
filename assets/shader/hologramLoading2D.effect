@@ -13,29 +13,29 @@ techniques:
           energyColor:
             { value: [0.0, 0.42, 1.0, 1.0], editor: { type: color, tooltip: "全息能量颜色" } }
           highlightColor:
-            { value: [0.2, 1.0, 1.0, 1.0], editor: { type: color, tooltip: "扫描亮带与数据块高光颜色" } }
+            { value: [0.7, 0.96, 1.0, 1.0], editor: { type: color, tooltip: "能量柱与白蓝数据块高光颜色" } }
           blockColorA:
-            { value: [0.18, 1.0, 0.86, 1.0], editor: { type: color, tooltip: "青绿色数据块颜色" } }
+            { value: [0.3, 1.0, 0.88, 1.0], editor: { type: color, tooltip: "青绿色数据块颜色" } }
           blockColorB:
-            { value: [1.0, 0.16, 0.62, 1.0], editor: { type: color, tooltip: "粉色数据块颜色" } }
+            { value: [1.0, 0.24, 0.67, 1.0], editor: { type: color, tooltip: "粉色数据块颜色" } }
           blockColorC:
-            { value: [0.68, 0.22, 1.0, 1.0], editor: { type: color, tooltip: "紫色数据块颜色" } }
+            { value: [0.2, 0.48, 1.0, 1.0], editor: { type: color, tooltip: "电蓝色数据块颜色" } }
           uvRect: { value: [0.0, 0.0, 1.0, 1.0], editor: { tooltip: "SpriteFrame 在纹理或动态图集中的 UV 区域" } }
           progress: { value: 0.0, editor: { tooltip: "加载进度：0 到 1" } }
-          scanWidth: { value: 0.045, editor: { tooltip: "扫描亮带宽度" } }
-          scanIntensity: { value: 1.8, editor: { tooltip: "扫描亮带亮度" } }
-          blockGrid: { value: [11.0, 18.0], editor: { tooltip: "数据块网格数量（横、纵）" } }
-          blockSpeed: { value: 1.25, editor: { tooltip: "数据块横向漂移速度" } }
-          blockIntensity: { value: 0.82, editor: { tooltip: "数据块透明度" } }
-          blockRange: { value: 0.42, editor: { tooltip: "数据块在扫描边缘附近的分布范围" } }
-          fieldIntensity: { value: 0.2, editor: { tooltip: "中央能量场透明度" } }
-          columnWidth: { value: 0.7, editor: { tooltip: "中央能量柱宽度" } }
-          rayDensity: { value: 14.0, editor: { tooltip: "竖向光丝密度" } }
-          raySpeed: { value: 1.0, editor: { tooltip: "竖向光丝流动速度" } }
-          glitchStrength: { value: 0.065, editor: { tooltip: "数据块水平跳动距离" } }
-          glitchRate: { value: 15.0, editor: { tooltip: "数据块跳动刷新频率" } }
-          edgeFade: { value: 0.08, editor: { tooltip: "特效区域边缘淡出宽度" } }
-          endFadeStart: { value: 0.84, editor: { tooltip: "完成前从哪个进度开始淡出" } }
+          scanWidth: { value: 0.05, editor: { tooltip: "底座能量亮线宽度" } }
+          scanIntensity: { value: 2.3, editor: { tooltip: "能量柱峰值亮度" } }
+          blockGrid: { value: [14.0, 19.0], editor: { tooltip: "数据块对齐网格数量（横、纵）" } }
+          blockSpeed: { value: 0.9, editor: { tooltip: "数据块单帧内的横向滑动速度" } }
+          blockIntensity: { value: 0.95, editor: { tooltip: "数据块透明度" } }
+          blockRange: { value: 0.34, editor: { tooltip: "数据块最大长度" } }
+          fieldIntensity: { value: 0.9, editor: { tooltip: "中央能量柱透明度" } }
+          columnWidth: { value: 0.76, editor: { tooltip: "中央能量柱宽度" } }
+          rayDensity: { value: 18.0, editor: { tooltip: "竖向光丝密度" } }
+          raySpeed: { value: 8.0, editor: { tooltip: "能量柱内部流动频率" } }
+          glitchStrength: { value: 0.08, editor: { tooltip: "数据块每次闪现间的水平位移" } }
+          glitchRate: { value: 30.0, editor: { tooltip: "数据块每秒重排次数" } }
+          edgeFade: { value: 0.06, editor: { tooltip: "特效区域边缘淡出宽度" } }
+          endFadeStart: { value: 0.94, editor: { tooltip: "残余数据块开始完全淡出的进度" } }
           flipY: { value: 0.0, editor: { tooltip: "扫描方向相反时设为 1" } }
 }%
 
@@ -118,10 +118,17 @@ float hash12(vec2 p) {
   return fract((p3.x + p3.y) * p3.z);
 }
 
+vec3 getDataColor(float key) {
+  vec3 color = blockColorA.rgb;
+  color = mix(color, blockColorB.rgb, step(0.46, key));
+  color = mix(color, blockColorC.rgb, step(0.74, key));
+  color = mix(color, highlightColor.rgb, step(0.9, key));
+  return color;
+}
+
 void main() {
   vec2 uvSize = max(uvRect.zw, vec2(0.000001));
   vec2 uv = (v_uv0 - uvRect.xy) / uvSize;
-  float time = cc_time.x;
   float currentProgress = clamp(progress, 0.0, 1.0);
   float localY = mix(1.0 - uv.y, uv.y, step(0.5, flipY));
 
@@ -133,179 +140,213 @@ void main() {
     * (1.0 - smoothstep(1.0 - fadeWidth, 1.0, localY));
   float edgeMask = edgeMaskX * edgeMaskY;
 
-  // 加载完成前逐渐将特效淡掉，为真正的模型或 UI 内容腾出画面。
-  float startLife = 0.45 + 0.55 * smoothstep(0.0, 0.08, currentProgress);
-  float endLife = 1.0 - smoothstep(
-    clamp(endFadeStart, 0.0, 0.99),
-    1.0,
-    currentProgress
+  // 参考视频的主能量柱并不沿 Y 轴扫描：0~13.6% 快速增亮，
+  // 13.6%~31.8% 衰减，之后只剩轻微蓝色余辉。
+  float phaseOn = smoothstep(0.0, 0.035, currentProgress);
+  float columnRise = smoothstep(0.0, 0.136, currentProgress);
+  float columnFall = 1.0 - smoothstep(0.136, 0.318, currentProgress);
+  float columnLife = columnRise * columnFall;
+  float fieldLife = phaseOn
+    * (1.0 - smoothstep(0.22, 0.42, currentProgress));
+  float tailLife = phaseOn * (
+    1.0 - smoothstep(
+      clamp(endFadeStart, 0.8, 0.99),
+      1.0,
+      currentProgress
+    )
   );
-  float life = startLife * endLife;
+  float tailSparse = smoothstep(0.38, 0.72, currentProgress);
 
-  float frontDistance = abs(localY - currentProgress);
-  float safeScanWidth = max(scanWidth, 0.0001);
-  float scanBand = 1.0 - smoothstep(0.0, safeScanWidth, frontDistance);
-  float scanEcho = 1.0 - smoothstep(
-    0.0,
-    safeScanWidth * 2.6,
-    abs(localY - currentProgress + safeScanWidth * 2.2)
-  );
-
-  // 中央仅保留一层很淡的能量雾和竖向光丝，不生成任何实体底图。
   float halfColumn = max(columnWidth * 0.5, 0.001);
-  float column = 1.0 - smoothstep(
-    halfColumn * 0.62,
+  float centerDistance = abs(uv.x - 0.5);
+  float columnCore = 1.0 - smoothstep(
+    halfColumn * 0.22,
     halfColumn,
-    abs(uv.x - 0.5)
+    centerDistance
   );
-  float frontGlow = 1.0 - smoothstep(
-    0.0,
-    max(blockRange, 0.0001),
-    frontDistance
+  float columnGlow = 1.0 - smoothstep(
+    halfColumn * 0.62,
+    min(0.5, halfColumn * 1.3),
+    centerDistance
   );
-  float softField = column * frontGlow * fieldIntensity;
+  float verticalMask = smoothstep(0.0, 0.055, localY)
+    * (1.0 - smoothstep(0.94, 1.0, localY));
+
+  float columnTick = floor(currentProgress * max(glitchRate, 1.0) * 0.5);
+  float horizontalSlice = mix(
+    0.62,
+    1.0,
+    hash12(vec2(floor(localY * 32.0), columnTick))
+  );
 
   float rayWave = 0.5 + 0.5 * sin(
-    (uv.x * max(rayDensity, 1.0) + time * 0.13) * 6.2831853
+    (uv.x * max(rayDensity, 1.0) + currentProgress * 0.7) * 6.2831853
   );
   float thinRays = pow(rayWave, 18.0);
   float rayPulse = 0.5 + 0.5 * sin(
-    (localY * 3.0 - time * raySpeed) * 6.2831853
+    (localY * 3.0 - currentProgress * raySpeed) * 6.2831853
   );
-  thinRays *= column * frontGlow * mix(0.25, 1.0, rayPulse);
+  thinRays *= columnCore * verticalMask * mix(0.28, 1.0, rayPulse);
 
-  // 每行使用独立速度和方向。两层长条交错反向漂移，模拟参考效果里
-  // 青、粉、紫色数据条快速穿过扫描柱的运动。
+  float safeScanWidth = max(scanWidth, 0.0001);
+  float baseLine = 1.0 - smoothstep(
+    safeScanWidth,
+    safeScanWidth * 2.2,
+    localY
+  );
+  float baseHalo = 1.0 - smoothstep(0.0, 0.24, localY);
+  float baseLife = smoothstep(0.0, 0.045, currentProgress)
+    * (1.0 - smoothstep(0.16, 0.34, currentProgress));
+
+  float columnAlpha = columnCore * verticalMask * horizontalSlice;
+  columnAlpha *= columnLife * fieldIntensity;
+  columnAlpha += thinRays * columnLife * fieldIntensity * 0.75;
+  float fieldAlpha = columnGlow * verticalMask * fieldLife * fieldIntensity * 0.28;
+  float baseAlpha = (baseLine * 0.9 + baseHalo * 0.42)
+    * baseLife
+    * fieldIntensity;
+
+  // 数据条按约 30Hz 离散重排。每一帧只做很短的横向滑动，下一帧直接
+  // 跳到新的行和位置，避免上一版连续漂移造成的差异。
   vec2 grid = max(blockGrid, vec2(1.0));
+  float glitchTime = currentProgress * max(glitchRate, 1.0);
+  float glitchTick = floor(glitchTime);
+  float glitchPhase = fract(glitchTime);
+  float aliveThreshold = mix(0.57, 0.88, tailSparse);
+
   float blockRow = floor(localY * grid.y);
-  float rowDirection = hash12(vec2(blockRow, 4.17)) * 2.0 - 1.0;
-  float rowSpeed = mix(0.65, 1.45, hash12(vec2(blockRow, 12.83)));
-  float rowPhase = hash12(vec2(blockRow, 27.41)) * 6.2831853;
-  float verticalWobble = sin(time * 5.5 + rowPhase) * 0.012;
-
-  float glitchTick = floor(time * max(glitchRate, 0.01));
-  float rowGlitch = hash12(vec2(blockRow, glitchTick));
-  float glitchGate = step(0.72, rowGlitch);
-  float glitchDirection = hash12(vec2(blockRow + 31.7, glitchTick)) * 2.0 - 1.0;
-  float horizontalJump = glitchGate * glitchDirection * glitchStrength * grid.x;
-
-  vec2 blockUV = vec2(
-    uv.x * grid.x
-      + time * blockSpeed * rowSpeed * rowDirection
-      + horizontalJump,
-    (localY + verticalWobble) * grid.y
+  float blockRowLocal = fract(localY * grid.y);
+  float blockSeed = hash12(vec2(blockRow + 3.1, glitchTick + 7.9));
+  float blockAlive = step(aliveThreshold, blockSeed);
+  float blockCenterSeed = hash12(vec2(blockRow + 21.7, glitchTick + 39.2));
+  float blockCenter = (
+    floor(blockCenterSeed * grid.x) + 0.5
+  ) / grid.x;
+  float blockDirection = hash12(vec2(blockRow + 61.3, glitchTick)) * 2.0 - 1.0;
+  blockCenter += (glitchPhase - 0.5)
+    * glitchStrength
+    * blockSpeed
+    * blockDirection;
+  float blockHalfWidth = mix(
+    0.025,
+    max(blockRange, 0.05) * 0.42,
+    hash12(vec2(blockRow + 12.6, glitchTick + 91.4))
   );
-  vec2 blockCell = floor(blockUV);
-  vec2 blockLocal = fract(blockUV);
-  float blockSeed = hash12(blockCell + vec2(3.1, 7.9));
-  float blockAlive = step(0.66, blockSeed);
-  float halfWidth = mix(0.24, 0.49, hash12(blockCell + 8.3));
-  float halfHeight = mix(0.04, 0.13, hash12(blockCell + 17.1));
-  float blockShape = step(abs(blockLocal.x - 0.5), halfWidth)
-    * step(abs(blockLocal.y - 0.5), halfHeight);
-  float blockZone = 1.0 - smoothstep(
-    0.0,
-    max(blockRange, 0.0001),
-    frontDistance
+  float blockHalfHeight = mix(
+    0.055,
+    0.17,
+    hash12(vec2(blockRow + 31.8, glitchTick + 16.2))
   );
-  float blockPulse = smoothstep(
+  float blockX = 1.0 - smoothstep(
+    blockHalfWidth,
+    blockHalfWidth + 0.012,
+    abs(uv.x - blockCenter)
+  );
+  float blockY = 1.0 - smoothstep(
+    blockHalfHeight,
+    blockHalfHeight + 0.08,
+    abs(blockRowLocal - 0.5)
+  );
+  float blockAlpha = blockX * blockY * blockAlive * tailLife * blockIntensity;
+  vec3 blockRGB = getDataColor(
+    hash12(vec2(blockRow + 71.2, glitchTick + 22.4))
+  );
+
+  float gridY2 = max(grid.y * 1.37, 1.0);
+  float blockRow2 = floor((localY + 0.013) * gridY2);
+  float blockRowLocal2 = fract((localY + 0.013) * gridY2);
+  float glitchTick2 = floor(glitchTime + 2.7);
+  float blockSeed2 = hash12(vec2(blockRow2 + 44.6, glitchTick2 + 5.3));
+  float blockAlive2 = step(aliveThreshold + 0.045, blockSeed2);
+  float blockCenterSeed2 = hash12(vec2(blockRow2 + 82.1, glitchTick2 + 33.7));
+  float blockCenter2 = (
+    floor(blockCenterSeed2 * grid.x) + 0.5
+  ) / grid.x;
+  float blockDirection2 = hash12(vec2(blockRow2 + 17.9, glitchTick2)) * 2.0 - 1.0;
+  blockCenter2 -= (glitchPhase - 0.5)
+    * glitchStrength
+    * blockSpeed
+    * 0.72
+    * blockDirection2;
+  float blockHalfWidth2 = mix(
+    0.018,
+    max(blockRange, 0.05) * 0.32,
+    hash12(vec2(blockRow2 + 24.3, glitchTick2 + 62.5))
+  );
+  float blockHalfHeight2 = mix(
+    0.045,
+    0.13,
+    hash12(vec2(blockRow2 + 13.5, glitchTick2 + 49.8))
+  );
+  float blockX2 = 1.0 - smoothstep(
+    blockHalfWidth2,
+    blockHalfWidth2 + 0.01,
+    abs(uv.x - blockCenter2)
+  );
+  float blockY2 = 1.0 - smoothstep(
+    blockHalfHeight2,
+    blockHalfHeight2 + 0.07,
+    abs(blockRowLocal2 - 0.5)
+  );
+  float blockAlpha2 = blockX2 * blockY2 * blockAlive2 * tailLife;
+  blockAlpha2 *= blockIntensity * 0.84;
+  vec3 blockRGB2 = getDataColor(
+    hash12(vec2(blockRow2 + 8.7, glitchTick2 + 104.2))
+  );
+
+  // 极少量白蓝小像素提供参考视频后半段的零星残影。
+  float pixelRow = floor(localY * 43.0);
+  float pixelRowLocal = fract(localY * 43.0);
+  float pixelSeed = hash12(vec2(pixelRow + 55.8, glitchTick + 18.4));
+  float pixelAlive = step(mix(0.9, 0.965, tailSparse), pixelSeed);
+  float pixelCenter = hash12(vec2(pixelRow + 91.6, glitchTick + 3.2));
+  float pixelHalfWidth = mix(
+    0.012,
+    0.045,
+    hash12(vec2(pixelRow + 14.9, glitchTick + 73.1))
+  );
+  float pixelX = 1.0 - smoothstep(
+    pixelHalfWidth,
+    pixelHalfWidth + 0.006,
+    abs(uv.x - pixelCenter)
+  );
+  float pixelY = 1.0 - smoothstep(
+    0.055,
     0.12,
-    0.72,
-    0.5 + 0.5 * sin(time * 15.0 + blockSeed * 20.0)
+    abs(pixelRowLocal - 0.5)
   );
-  float blockAlpha = blockShape * blockAlive * blockZone * blockPulse;
-  blockAlpha *= blockIntensity;
-
-  vec2 grid2 = vec2(max(grid.x * 0.72, 1.0), max(grid.y * 1.18, 1.0));
-  float blockRow2 = floor((localY + 0.027) * grid2.y);
-  float rowDirection2 = hash12(vec2(blockRow2, 39.6)) * 2.0 - 1.0;
-  float rowSpeed2 = mix(0.75, 1.35, hash12(vec2(blockRow2, 51.2)));
-  vec2 blockUV2 = vec2(
-    uv.x * grid2.x
-      + time * blockSpeed * 0.78 * rowSpeed2 * rowDirection2
-      - horizontalJump * 0.55
-      + 0.37,
-    (localY - verticalWobble * 0.72 + 0.027) * grid2.y
-  );
-  vec2 blockCell2 = floor(blockUV2);
-  vec2 blockLocal2 = fract(blockUV2);
-  float blockSeed2 = hash12(blockCell2 + vec2(61.4, 19.7));
-  float blockAlive2 = step(0.73, blockSeed2);
-  float halfWidth2 = mix(0.28, 0.49, hash12(blockCell2 + 23.7));
-  float halfHeight2 = mix(0.035, 0.095, hash12(blockCell2 + 42.6));
-  float blockShape2 = step(abs(blockLocal2.x - 0.5), halfWidth2)
-    * step(abs(blockLocal2.y - 0.5), halfHeight2);
-  float blockPulse2 = smoothstep(
-    0.18,
-    0.76,
-    0.5 + 0.5 * sin(time * 18.0 + blockSeed2 * 24.0)
-  );
-  float blockAlpha2 = blockShape2 * blockAlive2 * blockZone * blockPulse2;
-  blockAlpha2 *= blockIntensity * 0.86;
-
-  float blockColorKey = hash12(blockCell + vec2(91.3, 44.1));
-  vec3 blockRGB = mix(blockColorA.rgb, blockColorB.rgb, step(0.46, blockColorKey));
-  blockRGB = mix(blockRGB, blockColorC.rgb, step(0.82, blockColorKey));
-  float blockColorKey2 = hash12(blockCell2 + vec2(73.8, 102.4));
-  vec3 blockRGB2 = mix(blockColorA.rgb, blockColorB.rgb, step(0.42, blockColorKey2));
-  blockRGB2 = mix(blockRGB2, blockColorC.rgb, step(0.78, blockColorKey2));
+  float pixelAlpha = pixelX * pixelY * pixelAlive * tailLife;
+  pixelAlpha *= blockIntensity * 0.72;
 
   float combinedBlockAlpha = max(blockAlpha, blockAlpha2);
-  vec3 combinedBlockRGB = mix(
-    blockRGB,
-    blockRGB2,
-    step(blockAlpha, blockAlpha2)
+  vec3 combinedBlockRGB = mix(blockRGB, blockRGB2, step(blockAlpha, blockAlpha2));
+  float dataAlpha = max(combinedBlockAlpha, pixelAlpha);
+  vec3 dataRGB = mix(
+    combinedBlockRGB,
+    highlightColor.rgb,
+    step(combinedBlockAlpha, pixelAlpha)
   );
 
-  // 少量更长、更薄的 Glitch 横条快速扫过，强化一秒周期内的速度感。
-  float streakRow = floor(localY * 46.0);
-  float streakSeed = hash12(vec2(streakRow, glitchTick));
-  float streakGate = step(0.88, streakSeed);
-  float streakDirection = hash12(vec2(streakRow + 5.8, 31.2)) * 2.0 - 1.0;
-  float streakCenter = fract(
-    hash12(vec2(streakRow + 9.4, glitchTick))
-      + time * blockSpeed * 0.18 * streakDirection
-  );
-  float streakWidth = mix(0.08, 0.26, hash12(vec2(streakRow + 18.2, glitchTick)));
-  float streak = 1.0 - smoothstep(
-    streakWidth,
-    streakWidth + 0.012,
-    abs(uv.x - streakCenter)
-  );
-  streak *= streakGate * blockZone;
-
-  float scanAlpha = (scanBand * 0.88 + scanEcho * 0.28) * column;
-  float rayAlpha = thinRays * fieldIntensity * 0.7;
-  float fieldAlpha = softField * 0.42;
-  float streakAlpha = streak * blockIntensity * 0.68;
-
-  float effectAlpha = max(scanAlpha, combinedBlockAlpha);
-  effectAlpha = max(effectAlpha, rayAlpha + fieldAlpha);
-  effectAlpha = max(effectAlpha, streakAlpha);
-  effectAlpha *= edgeMask * life * v_color.a;
+  float energyAlpha = max(columnAlpha, fieldAlpha);
+  energyAlpha = max(energyAlpha, baseAlpha);
+  float effectAlpha = max(energyAlpha, dataAlpha);
+  effectAlpha *= edgeMask * v_color.a;
 
   if (effectAlpha < 0.001) {
     discard;
   }
 
-  float highlight = clamp(
-    scanBand * scanIntensity + combinedBlockAlpha * 0.32,
-    0.0,
-    1.0
-  );
-  vec3 color = mix(energyColor.rgb, highlightColor.rgb, highlight);
-  float streakColorKey = hash12(vec2(streakRow, glitchTick + 67.3));
-  vec3 streakRGB = mix(blockColorA.rgb, blockColorB.rgb, step(0.38, streakColorKey));
-  streakRGB = mix(streakRGB, blockColorC.rgb, step(0.84, streakColorKey));
-  float dataAlpha = max(combinedBlockAlpha, streakAlpha);
-  vec3 dataRGB = mix(
-    combinedBlockRGB,
-    streakRGB,
-    step(combinedBlockAlpha, streakAlpha)
+  float centerHot = columnCore * columnLife;
+  vec3 energyRGB = mix(
+    energyColor.rgb,
+    highlightColor.rgb,
+    clamp(centerHot * 0.82 + baseLine * baseLife, 0.0, 1.0)
   );
   float dataMix = clamp(dataAlpha / max(effectAlpha, 0.0001), 0.0, 1.0);
-  color = mix(color, dataRGB, dataMix * 0.92);
-  color *= 0.82 + scanBand * scanIntensity + thinRays * 0.45;
+  vec3 color = mix(energyRGB, dataRGB, dataMix);
+  color *= 0.88
+    + columnLife * scanIntensity * 0.56
+    + thinRays * columnLife * 0.48;
   color *= v_color.rgb;
 
   gl_FragColor = vec4(color, clamp(effectAlpha, 0.0, 1.0));
