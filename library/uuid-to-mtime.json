@@ -1055,8 +1055,8 @@
     "relativePath": "resources\\image\\background.png"
   },
   "e0cb21ec-c942-496b-8c24-15afe91fca24": {
-    "asset": 1787818556544,
-    "meta": 1787818713893,
+    "asset": 1787822409961,
+    "meta": 1787822409965,
     "relativePath": "scene\\magnifyingGlass.fire"
   },
   "8aa68339-e6d5-4f9c-a3a5-ff8eb9210ca5": {
@@ -1064,14 +1064,14 @@
     "meta": 1787820569903,
     "relativePath": "script\\HologramLoading2D.ts"
   },
-  "d83f678a-3294-4dc0-9e56-d6b162e88b47": {
-    "asset": 1787820123735,
-    "meta": 1787820569918,
-    "relativePath": "shader\\hologramLoading2D.effect"
-  },
   "53c64eb2-6f1a-4934-abfc-e85aa4bafdab": {
     "asset": 1787819924624,
     "meta": 1787820569921,
     "relativePath": "shader\\hologramLoading2D.mtl"
+  },
+  "d83f678a-3294-4dc0-9e56-d6b162e88b47": {
+    "asset": 1787821762664,
+    "meta": 1787822408775,
+    "relativePath": "shader\\hologramLoading2D.effect"
   }
 }

@@ -140,14 +140,14 @@ void main() {
     * (1.0 - smoothstep(1.0 - fadeWidth, 1.0, localY));
   float edgeMask = edgeMaskX * edgeMaskY;
 
-  // 参考视频的主能量柱并不沿 Y 轴扫描：0~13.6% 快速增亮，
-  // 13.6%~31.8% 衰减，之后只剩轻微蓝色余辉。
+  // 主能量柱的白色闪光压缩为原时长的一半：0~6.8% 快速增亮，
+  // 6.8%~15.9% 衰减，之后只剩很短的蓝色余辉。
   float phaseOn = smoothstep(0.0, 0.035, currentProgress);
-  float columnRise = smoothstep(0.0, 0.136, currentProgress);
-  float columnFall = 1.0 - smoothstep(0.136, 0.318, currentProgress);
+  float columnRise = smoothstep(0.0, 0.068, currentProgress);
+  float columnFall = 1.0 - smoothstep(0.068, 0.159, currentProgress);
   float columnLife = columnRise * columnFall;
   float fieldLife = phaseOn
-    * (1.0 - smoothstep(0.22, 0.42, currentProgress));
+    * (1.0 - smoothstep(0.11, 0.21, currentProgress));
   float tailLife = phaseOn * (
     1.0 - smoothstep(
       clamp(endFadeStart, 0.8, 0.99),
@@ -155,7 +155,9 @@ void main() {
       currentProgress
     )
   );
-  float tailSparse = smoothstep(0.38, 0.72, currentProgress);
+  // 角色显形后先快速减少大部分数据块，后段继续单调淘汰残余粒子。
+  float rapidCull = smoothstep(0.38, 0.58, currentProgress);
+  float finalCull = smoothstep(0.72, 0.94, currentProgress);
 
   float halfColumn = max(columnWidth * 0.5, 0.001);
   float centerDistance = abs(uv.x - 0.5);
@@ -195,8 +197,8 @@ void main() {
     localY
   );
   float baseHalo = 1.0 - smoothstep(0.0, 0.24, localY);
-  float baseLife = smoothstep(0.0, 0.045, currentProgress)
-    * (1.0 - smoothstep(0.16, 0.34, currentProgress));
+  float baseLife = smoothstep(0.0, 0.0225, currentProgress)
+    * (1.0 - smoothstep(0.08, 0.17, currentProgress));
 
   float columnAlpha = columnCore * verticalMask * horizontalSlice;
   columnAlpha *= columnLife * fieldIntensity;
@@ -212,11 +214,13 @@ void main() {
   float glitchTime = currentProgress * max(glitchRate, 1.0);
   float glitchTick = floor(glitchTime);
   float glitchPhase = fract(glitchTime);
-  float aliveThreshold = mix(0.57, 0.88, tailSparse);
+  float aliveThreshold = mix(0.57, 0.9, rapidCull);
+  aliveThreshold = mix(aliveThreshold, 1.001, finalCull);
 
   float blockRow = floor(localY * grid.y);
   float blockRowLocal = fract(localY * grid.y);
-  float blockSeed = hash12(vec2(blockRow + 3.1, glitchTick + 7.9));
+  // 生存随机数不随 glitchTick 改变，阈值升高时粒子只会减少，不会回补。
+  float blockSeed = hash12(vec2(blockRow + 3.1, 7.9));
   float blockAlive = step(aliveThreshold, blockSeed);
   float blockCenterSeed = hash12(vec2(blockRow + 21.7, glitchTick + 39.2));
   float blockCenter = (
@@ -256,7 +260,7 @@ void main() {
   float blockRow2 = floor((localY + 0.013) * gridY2);
   float blockRowLocal2 = fract((localY + 0.013) * gridY2);
   float glitchTick2 = floor(glitchTime + 2.7);
-  float blockSeed2 = hash12(vec2(blockRow2 + 44.6, glitchTick2 + 5.3));
+  float blockSeed2 = hash12(vec2(blockRow2 + 44.6, 5.3));
   float blockAlive2 = step(aliveThreshold + 0.045, blockSeed2);
   float blockCenterSeed2 = hash12(vec2(blockRow2 + 82.1, glitchTick2 + 33.7));
   float blockCenter2 = (
@@ -297,8 +301,10 @@ void main() {
   // 极少量白蓝小像素提供参考视频后半段的零星残影。
   float pixelRow = floor(localY * 43.0);
   float pixelRowLocal = fract(localY * 43.0);
-  float pixelSeed = hash12(vec2(pixelRow + 55.8, glitchTick + 18.4));
-  float pixelAlive = step(mix(0.9, 0.965, tailSparse), pixelSeed);
+  float pixelSeed = hash12(vec2(pixelRow + 55.8, 18.4));
+  float pixelThreshold = mix(0.88, 0.97, rapidCull);
+  pixelThreshold = mix(pixelThreshold, 1.001, finalCull);
+  float pixelAlive = step(pixelThreshold, pixelSeed);
   float pixelCenter = hash12(vec2(pixelRow + 91.6, glitchTick + 3.2));
   float pixelHalfWidth = mix(
     0.012,
