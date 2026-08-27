@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "waterMove",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "1cb58225-ae4b-4594-8ea0-4f99d2be1120"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

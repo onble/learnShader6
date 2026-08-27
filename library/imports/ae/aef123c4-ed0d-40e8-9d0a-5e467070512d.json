@@ -1,0 +1,25 @@
+{
+  "__type__": "cc.Material",
+  "_name": "melt",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "f7c37ee6-4369-4e5b-99da-7b2d9af653f9"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      },
+      "props": {
+        "texture": {
+          "__uuid__": "8b6337b3-cb2d-411a-b202-d1e8913f1b05"
+        },
+        "dissolveMap": {
+          "__uuid__": "a1647b2b-6f87-46a5-be44-53184072388a"
+        }
+      }
+    }
+  }
+}

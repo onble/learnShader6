@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "rotateUV",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "ee37dd72-2a54-4daf-90ef-9edf6a80f3ed"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

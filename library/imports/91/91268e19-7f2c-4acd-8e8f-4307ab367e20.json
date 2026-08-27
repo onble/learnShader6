@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "strongSharpen",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "d59ae15f-eda4-457f-9137-2b5dee91bbfc"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

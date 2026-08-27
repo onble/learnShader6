@@ -1,0 +1,28 @@
+{
+  "__type__": "cc.SpriteFrame",
+  "content": {
+    "name": "cocosIcon",
+    "texture": "a38fe7bf-9b54-4bb0-9b2f-9d4fd6c48612",
+    "atlas": "",
+    "rect": [
+      0,
+      0,
+      140,
+      200
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "originalSize": [
+      140,
+      200
+    ],
+    "capInsets": [
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}

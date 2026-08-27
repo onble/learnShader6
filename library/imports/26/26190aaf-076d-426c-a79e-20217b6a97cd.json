@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "cloud",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "720e382a-3ead-4497-ab38-8ba7320f0cf9"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

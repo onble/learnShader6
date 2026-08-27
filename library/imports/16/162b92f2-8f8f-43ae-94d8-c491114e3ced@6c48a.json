@@ -1,0 +1,28 @@
+{
+  "__type__": "cc.SpriteFrame",
+  "content": {
+    "name": "raptor-pro",
+    "texture": "162b92f2-8f8f-43ae-94d8-c491114e3ced",
+    "atlas": "",
+    "rect": [
+      0,
+      0,
+      1852,
+      256
+    ],
+    "offset": [
+      -98,
+      0
+    ],
+    "originalSize": [
+      2048,
+      256
+    ],
+    "capInsets": [
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}

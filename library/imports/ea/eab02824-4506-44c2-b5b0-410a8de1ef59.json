@@ -1,0 +1,25 @@
+{
+  "__type__": "cc.Material",
+  "_name": "shaderPlus",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "db3c1566-112c-467f-b1c1-23c7559cd732"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      },
+      "props": {
+        "textureInput": {
+          "__uuid__": "a38fe7bf-9b54-4bb0-9b2f-9d4fd6c48612"
+        },
+        "texture": {
+          "__uuid__": "8b6337b3-cb2d-411a-b202-d1e8913f1b05"
+        }
+      }
+    }
+  }
+}

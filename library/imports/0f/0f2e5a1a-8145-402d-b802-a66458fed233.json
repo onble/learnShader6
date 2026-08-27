@@ -1,0 +1,28 @@
+{
+  "__type__": "cc.SpriteFrame",
+  "content": {
+    "name": "ico_item000146",
+    "texture": "6b07338e-af8d-4f99-b501-f17dd7e71d07",
+    "atlas": "",
+    "rect": [
+      9,
+      6,
+      101,
+      111
+    ],
+    "offset": [
+      -0.5,
+      -1.5
+    ],
+    "originalSize": [
+      120,
+      120
+    ],
+    "capInsets": [
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}

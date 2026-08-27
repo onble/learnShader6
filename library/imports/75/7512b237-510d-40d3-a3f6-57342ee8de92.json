@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "sobelY",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "6b4ccdc7-d1b6-47a8-885b-87f1ef26813b"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

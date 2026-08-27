@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "remap",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "51a1e685-0f60-4193-bfcc-2973fb369ecf"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

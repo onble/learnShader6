@@ -1,0 +1,60 @@
+{
+  "__type__": "cc.Material",
+  "_name": "hologramLoading2D",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "d83f678a-3294-4dc0-9e56-d6b162e88b47"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      },
+      "props": {
+        "energyColor": {
+          "__type__": "cc.Color",
+          "r": 0,
+          "g": 107,
+          "b": 255,
+          "a": 255
+        },
+        "highlightColor": {
+          "__type__": "cc.Color",
+          "r": 51,
+          "g": 255,
+          "b": 255,
+          "a": 255
+        },
+        "blockGrid": {
+          "__type__": "cc.Vec2",
+          "x": 13,
+          "y": 20
+        },
+        "uvRect": {
+          "__type__": "cc.Vec4",
+          "x": 0,
+          "y": 0,
+          "z": 1,
+          "w": 1
+        },
+        "progress": 0,
+        "scanWidth": 0.055,
+        "scanIntensity": 2.2,
+        "blockSpeed": 0.48,
+        "blockIntensity": 0.95,
+        "blockRange": 0.32,
+        "fieldIntensity": 0.28,
+        "columnWidth": 0.76,
+        "rayDensity": 14,
+        "raySpeed": 0.4,
+        "glitchStrength": 0.035,
+        "glitchRate": 11,
+        "edgeFade": 0.08,
+        "endFadeStart": 0.88,
+        "flipY": 0
+      }
+    }
+  }
+}

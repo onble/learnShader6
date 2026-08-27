@@ -1,0 +1,17 @@
+{
+  "__type__": "cc.Material",
+  "_name": "smoothstep1",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "f74bbd3a-4a94-488a-8648-59b500637534"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      }
+    }
+  }
+}

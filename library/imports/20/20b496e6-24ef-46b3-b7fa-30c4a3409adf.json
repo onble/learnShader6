@@ -1,0 +1,28 @@
+{
+  "__type__": "cc.SpriteFrame",
+  "content": {
+    "name": "destoryNoise",
+    "texture": "a1647b2b-6f87-46a5-be44-53184072388a",
+    "atlas": "",
+    "rect": [
+      0,
+      0,
+      578,
+      573
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "originalSize": [
+      578,
+      573
+    ],
+    "capInsets": [
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}
