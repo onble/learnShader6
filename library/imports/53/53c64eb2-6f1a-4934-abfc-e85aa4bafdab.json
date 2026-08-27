@@ -27,10 +27,31 @@
           "b": 255,
           "a": 255
         },
+        "blockColorA": {
+          "__type__": "cc.Color",
+          "r": 46,
+          "g": 255,
+          "b": 219,
+          "a": 255
+        },
+        "blockColorB": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 41,
+          "b": 158,
+          "a": 255
+        },
+        "blockColorC": {
+          "__type__": "cc.Color",
+          "r": 173,
+          "g": 56,
+          "b": 255,
+          "a": 255
+        },
         "blockGrid": {
           "__type__": "cc.Vec2",
-          "x": 13,
-          "y": 20
+          "x": 11,
+          "y": 18
         },
         "uvRect": {
           "__type__": "cc.Vec4",
@@ -42,15 +63,15 @@
         "progress": 0,
         "scanWidth": 0.055,
         "scanIntensity": 2.2,
-        "blockSpeed": 0.48,
+        "blockSpeed": 1.25,
         "blockIntensity": 0.95,
-        "blockRange": 0.32,
+        "blockRange": 0.42,
         "fieldIntensity": 0.28,
         "columnWidth": 0.76,
         "rayDensity": 14,
-        "raySpeed": 0.4,
-        "glitchStrength": 0.035,
-        "glitchRate": 11,
+        "raySpeed": 1,
+        "glitchStrength": 0.065,
+        "glitchRate": 15,
         "edgeFade": 0.08,
         "endFadeStart": 0.88,
         "flipY": 0

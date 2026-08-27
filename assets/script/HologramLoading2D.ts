@@ -17,7 +17,7 @@ export default class HologramLoading2D extends cc.Component {
     delay: number = 0;
 
     @property({ tooltip: '一次加载动画的持续时间（秒）' })
-    duration: number = 1.8;
+    duration: number = 1.0;
 
     private _sprite: cc.Sprite = null;
     private _material: cc.MaterialVariant = null;
