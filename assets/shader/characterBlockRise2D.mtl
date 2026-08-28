@@ -47,6 +47,7 @@
           "y": 14
         },
         "time": 0,
+        "widthTime": 0,
         "aspectRatio": 0.62,
         "density": 0.28,
         "riseSpeed": 0.72,
@@ -64,6 +65,7 @@
         "centerWidth": 0.82,
         "auraWidth": 0.32,
         "auraIntensity": 0.1,
+        "auraPulseStrength": 1.8,
         "flipY": 0
       }
     }

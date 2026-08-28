@@ -41,6 +41,8 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
         _this._material = null;
         // 传给 Shader 的是 0~1 的归一化循环时间，便于制作无缝的一秒动画。
         _this._time = 0;
+        // 宽度呼吸不跟随一秒循环重置，避免快速上升的碎片出现拍动感。
+        _this._widthTime = 0;
         _this._playing = false;
         return _this;
     }
@@ -59,6 +61,7 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
             return;
         }
         this._time = this.toCycleTime(this.startOffset);
+        this._widthTime = Math.max(0, this.startOffset);
         this.applyTime();
         this.refreshLayout();
         this.node.on(cc.Node.EventType.SIZE_CHANGED, this.refreshLayout, this);
@@ -75,6 +78,10 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
             return;
         }
         this._time += dt * Math.max(0, this.playbackSpeed) / this.safeCycleDuration();
+        this._widthTime += dt * Math.max(0, this.playbackSpeed);
+        if (this._widthTime > 4096) {
+            this._widthTime %= 4096;
+        }
         if (this._time >= 1.0) {
             if (this.loopAnimation) {
                 this._time %= 1.0;
@@ -102,6 +109,7 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
             return;
         }
         this._time = this.toCycleTime(this.startOffset);
+        this._widthTime = Math.max(0, this.startOffset);
         this.applyTime();
         this._playing = true;
     };
@@ -111,11 +119,13 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
             return;
         }
         this._time = this.toCycleTime(value);
+        this._widthTime = Math.max(0, value);
         this.applyTime();
     };
     CharacterBlockRise2D.prototype.applyTime = function () {
         if (this._material) {
             this._material.setProperty('time', this._time);
+            this._material.setProperty('widthTime', this._widthTime);
         }
     };
     CharacterBlockRise2D.prototype.safeCycleDuration = function () {

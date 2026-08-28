@@ -26,6 +26,8 @@ export default class CharacterBlockRise2D extends cc.Component {
     private _material: cc.MaterialVariant = null;
     // 传给 Shader 的是 0~1 的归一化循环时间，便于制作无缝的一秒动画。
     private _time: number = 0;
+    // 宽度呼吸不跟随一秒循环重置，避免快速上升的碎片出现拍动感。
+    private _widthTime: number = 0;
     private _playing: boolean = false;
 
     onLoad() {
@@ -45,6 +47,7 @@ export default class CharacterBlockRise2D extends cc.Component {
         }
 
         this._time = this.toCycleTime(this.startOffset);
+        this._widthTime = Math.max(0, this.startOffset);
         this.applyTime();
         this.refreshLayout();
 
@@ -65,6 +68,10 @@ export default class CharacterBlockRise2D extends cc.Component {
         }
 
         this._time += dt * Math.max(0, this.playbackSpeed) / this.safeCycleDuration();
+        this._widthTime += dt * Math.max(0, this.playbackSpeed);
+        if (this._widthTime > 4096) {
+            this._widthTime %= 4096;
+        }
         if (this._time >= 1.0) {
             if (this.loopAnimation) {
                 this._time %= 1.0;
@@ -95,6 +102,7 @@ export default class CharacterBlockRise2D extends cc.Component {
         }
 
         this._time = this.toCycleTime(this.startOffset);
+        this._widthTime = Math.max(0, this.startOffset);
         this.applyTime();
         this._playing = true;
     }
@@ -106,12 +114,14 @@ export default class CharacterBlockRise2D extends cc.Component {
         }
 
         this._time = this.toCycleTime(value);
+        this._widthTime = Math.max(0, value);
         this.applyTime();
     }
 
     private applyTime() {
         if (this._material) {
             this._material.setProperty('time', this._time);
+            this._material.setProperty('widthTime', this._widthTime);
         }
     }
 

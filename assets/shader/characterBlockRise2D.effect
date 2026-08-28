@@ -21,6 +21,7 @@ techniques:
           uvRect: { value: [0.0, 0.0, 1.0, 1.0], editor: { tooltip: "SpriteFrame 在纹理或动态图集中的 UV 区域" } }
           blockGrid: { value: [8.0, 15.0], editor: { tooltip: "中层方块网格数量（横、纵）" } }
           time: { value: 0.0, editor: { tooltip: "动画时间，由 CharacterBlockRise2D 脚本驱动" } }
+          widthTime: { value: 0.0, editor: { tooltip: "矩形宽度呼吸时间，由 CharacterBlockRise2D 脚本驱动" } }
           aspectRatio: { value: 0.62, editor: { tooltip: "节点宽高比，由脚本自动更新" } }
           density: { value: 0.28, editor: { tooltip: "方块密度" } }
           riseSpeed: { value: 0.62, editor: { tooltip: "电子屏向上移动速度" } }
@@ -38,6 +39,7 @@ techniques:
           centerWidth: { value: 0.82, editor: { tooltip: "方块场横向主体宽度" } }
           auraWidth: { value: 0.32, editor: { tooltip: "角色背后纵向柔光宽度" } }
           auraIntensity: { value: 0.1, editor: { tooltip: "角色背后纵向柔光强度；设为 0 可关闭" } }
+          auraPulseStrength: { value: 1.8, editor: { tooltip: "蓝色柔光在动画中段的额外增强倍率" } }
           flipY: { value: 0.0, editor: { tooltip: "移动方向相反时设为 1" } }
 }%
 
@@ -93,6 +95,7 @@ uniform CharacterBlockRise {
   vec4 uvRect;
   vec2 blockGrid;
   float time;
+  float widthTime;
   float aspectRatio;
   float density;
   float riseSpeed;
@@ -110,6 +113,7 @@ uniform CharacterBlockRise {
   float centerWidth;
   float auraWidth;
   float auraIntensity;
+  float auraPulseStrength;
   float flipY;
 };
 
@@ -145,9 +149,11 @@ vec4 blockLayer(
   vec2 cellId = floor(cellPosition);
   vec2 cellUV = fract(cellPosition);
 
-  // 数量从 0 平滑增加到约 9 个视觉碎片，再回到 0，形成一次明确的加载脉冲。
-  float densityWave = sin(time * 3.14159265);
-  float densityEnvelope = 0.24 * densityWave * densityWave;
+  // 数量先聚集到约 9 个视觉碎片，约在中段后便开始回落，
+  // 并以更长的尾部平缓淡出，避免结束时突然清空。
+  float densityRise = smoothstep(0.0, 0.35, time);
+  float densityFall = 1.0 - smoothstep(0.42, 1.0, time);
+  float densityEnvelope = 0.24 * densityRise * densityFall;
   float aliveKey = hash12(cellId + vec2(layerSeed, layerSeed * 1.73));
   float alive = step(
     1.0 - clamp(density * densityScale * densityEnvelope, 0.0, 0.98),
@@ -175,13 +181,17 @@ vec4 blockLayer(
   float shapeKey = hash12(cellId + vec2(29.4, layerSeed * 5.71));
   float widthRatio = mix(1.20, 2.25, shapeKey);
   float widthPulseKey = hash12(cellId + vec2(83.6, layerSeed * 3.17));
-  float widthFrequency = 2.0 + 2.0 * step(0.5, widthPulseKey);
-  float widthPulse = 0.82 + 0.48 * (
-    0.5 + 0.5 * sin((time * widthFrequency + widthPulseKey) * 6.2831853)
-  );
-  float animatedPanel = step(0.64, widthPulseKey);
+  // 独立的低速单向生命周期：短暂生成后缓慢收束至接近 0，
+  // 不再使用正弦往返宽度，避免产生蝴蝶拍动感。
+  float widthPhase = fract(widthTime * 0.12 + widthPulseKey);
+  float widthAppear = smoothstep(0.0, 0.08, widthPhase);
+  float widthCollapse = 1.0 - smoothstep(0.18, 0.92, widthPhase);
+  float widthPulse = widthAppear * widthCollapse;
+  // 只有最慢的远景层允许宽度呼吸；快速上升的中、近景碎片固定宽度，
+  // 避免位移与伸缩叠加后显得像快速拍动。
+  float animatedPanel = step(0.64, widthPulseKey) * (1.0 - step(0.8, speedScale));
   float halfWidth = halfHeight * widthRatio * mix(1.0, widthPulse, animatedPanel);
-  halfWidth = clamp(halfWidth, halfHeight * 0.9, 0.47);
+  halfWidth = clamp(halfWidth, 0.002, 0.47);
 
   // 按节点实际宽高比校正 x，确保非正方形 Sprite 上仍然画出正方块。
   vec2 blockDistance = abs(cellUV - center);
@@ -220,9 +230,10 @@ vec4 blockLayer(
     1.0,
     0.5 + 0.5 * sin((time * pulseFrequency + centerKey) * 6.2831853)
   );
+  float widthVisibility = mix(1.0, smoothstep(0.01, 0.12, widthPulse), animatedPanel);
   float alpha = (frame * (0.92 + energyFlow * 0.58)
     + glow * glowIntensity * 0.46
-    + innerPanel * 0.10) * alive * pulse;
+    + innerPanel * 0.10) * alive * pulse * widthVisibility;
   vec3 ownColor = screenColor(hash12(cellId + vec2(layerSeed * 11.7)));
   // 青蓝与紫色互相过渡的能量边缘；内部仅留一层极淡的护盾折射感。
   vec3 shieldColor = mix(baseColor.rgb, accentColor.rgb, shapeKey);
@@ -297,7 +308,11 @@ void main() {
     max(auraWidth, 0.0001),
     abs(uv.x - 0.5)
   );
-  aura *= verticalMask * max(auraIntensity, 0.0);
+  // 蓝色护盾底光在动画中段增强，结尾回到材质设定的基础亮度。
+  float auraWave = sin(time * 3.14159265);
+  float animatedAuraIntensity = max(auraIntensity, 0.0)
+    * (1.0 + max(auraPulseStrength, 0.0) * auraWave * auraWave);
+  aura *= verticalMask * animatedAuraIntensity;
   aura *= 0.78 + 0.22 * sin((uv.y * 3.0 - time * 2.0) * 6.2831853);
 
   float finalAlpha = max(blocksAlpha, aura) * opacity * v_color.a;
