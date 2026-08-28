@@ -510,13 +510,13 @@
     "relativePath": "scene"
   },
   "20a78308-cdcb-409b-b581-a4290e3b8ebf": {
-    "asset": 1787814593314,
-    "meta": 1787814783327,
+    "asset": 1787907304282,
+    "meta": 1787907621905,
     "relativePath": "script"
   },
   "e9635f08-e4af-4788-b8d2-d680933c7bc8": {
-    "asset": 1787814593353,
-    "meta": 1787814783328,
+    "asset": 1787907299659,
+    "meta": 1787907621906,
     "relativePath": "shader"
   },
   "d6406303-532f-4f07-8dd7-1ad75aca0e69": {
@@ -991,7 +991,7 @@
   },
   "76fb927f-d3d1-46ad-a6f8-da38db19f54a": {
     "asset": 1787814593302,
-    "meta": 1787814783997,
+    "meta": 1787907622005,
     "relativePath": "resources\\spine\\a_spine\\raptor-pro\\raptor-pro.skel"
   },
   "a38fe7bf-9b54-4bb0-9b2f-9d4fd6c48612": {
@@ -1055,8 +1055,8 @@
     "relativePath": "resources\\image\\background.png"
   },
   "e0cb21ec-c942-496b-8c24-15afe91fca24": {
-    "asset": 1787822409961,
-    "meta": 1787822409965,
+    "asset": 1787908542842,
+    "meta": 1787908542845,
     "relativePath": "scene\\magnifyingGlass.fire"
   },
   "8aa68339-e6d5-4f9c-a3a5-ff8eb9210ca5": {
@@ -1073,5 +1073,20 @@
     "asset": 1787821762664,
     "meta": 1787822408775,
     "relativePath": "shader\\hologramLoading2D.effect"
+  },
+  "1d6a9dcf-5f5c-4f31-b8ed-3615bcce1aec": {
+    "asset": 1787907301958,
+    "meta": 1787907621939,
+    "relativePath": "script\\CharacterBlockRise2D.ts"
+  },
+  "4f20ed30-df22-4a77-bfab-2e2b8c301fdc": {
+    "asset": 1787907909959,
+    "meta": 1787907992675,
+    "relativePath": "shader\\characterBlockRise2D.effect"
+  },
+  "9a45c624-87b8-4dfa-bdc2-97a2cd409789": {
+    "asset": 1787908573844,
+    "meta": 1787908573847,
+    "relativePath": "shader\\characterBlockRise2D.mtl"
   }
 }

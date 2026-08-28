@@ -1,4 +1,5 @@
 
+require('./assets/script/CharacterBlockRise2D');
 require('./assets/script/CornerColorCtrl');
 require('./assets/script/DissolveEffect');
 require('./assets/script/Fake3D');

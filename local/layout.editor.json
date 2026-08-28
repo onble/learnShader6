@@ -5,16 +5,16 @@
       "main": true,
       "url": "app://editor/index.html",
       "windowType": "dockable",
-      "x": 2552,
-      "y": 710,
-      "width": 1936,
-      "height": 1048,
+      "x": 2560,
+      "y": 718,
+      "width": 1920,
+      "height": 1032,
       "layout": {
         "type": "dock-h",
         "children": [
           {
-            "width": 283,
-            "height": 927.5,
+            "width": 280.1875,
+            "height": 911.5,
             "type": "panel",
             "active": 0,
             "children": [
@@ -22,13 +22,13 @@
             ]
           },
           {
-            "width": 1041,
-            "height": 927.5,
+            "width": 1030.640625,
+            "height": 911.5,
             "type": "dock-v",
             "children": [
               {
-                "width": 1041,
-                "height": 461.25,
+                "width": 1030.640625,
+                "height": 452.765625,
                 "type": "panel",
                 "active": 0,
                 "children": [
@@ -36,8 +36,8 @@
                 ]
               },
               {
-                "width": 1041,
-                "height": 463.25,
+                "width": 1030.640625,
+                "height": 455.71875,
                 "type": "panel",
                 "active": 0,
                 "children": [
@@ -49,8 +49,8 @@
             ]
           },
           {
-            "width": 283,
-            "height": 927.5,
+            "width": 280.1875,
+            "height": 911.5,
             "type": "panel",
             "active": 0,
             "children": [
@@ -60,7 +60,7 @@
           },
           {
             "width": 304,
-            "height": 927.5,
+            "height": 911.5,
             "type": "panel",
             "active": 0,
             "children": [
@@ -72,17 +72,16 @@
       },
       "panels": [
         "hierarchy",
-        "assets",
         "scene",
-        "node-library",
         "console",
         "timeline",
         "game-window",
+        "assets",
+        "node-library",
         "inspector",
         "cocos-services"
       ]
-    },
-    " common-asset-worker-worker": {}
+    }
   },
   "panels": {},
   "panelLabelWidth": {}

@@ -1,0 +1,71 @@
+{
+  "__type__": "cc.Material",
+  "_name": "characterBlockRise2D",
+  "_objFlags": 0,
+  "_native": "",
+  "_effectAsset": {
+    "__uuid__": "4f20ed30-df22-4a77-bfab-2e2b8c301fdc"
+  },
+  "_techniqueIndex": 0,
+  "_techniqueData": {
+    "0": {
+      "defines": {
+        "USE_TEXTURE": true
+      },
+      "props": {
+        "baseColor": {
+          "__type__": "cc.Color",
+          "r": 48,
+          "g": 218,
+          "b": 255,
+          "a": 255
+        },
+        "accentColor": {
+          "__type__": "cc.Color",
+          "r": 0,
+          "g": 26,
+          "b": 255,
+          "a": 255
+        },
+        "highlightColor": {
+          "__type__": "cc.Color",
+          "r": 255,
+          "g": 126,
+          "b": 252,
+          "a": 255
+        },
+        "uvRect": {
+          "__type__": "cc.Vec4",
+          "x": 0,
+          "y": 0,
+          "z": 1,
+          "w": 1
+        },
+        "blockGrid": {
+          "__type__": "cc.Vec2",
+          "x": 8,
+          "y": 15
+        },
+        "time": 0,
+        "aspectRatio": 0.62,
+        "density": 0.28,
+        "riseSpeed": 0.4,
+        "drift": 0.05,
+        "sizeMin": 0.13,
+        "sizeMax": 0.34,
+        "edgeSoftness": 0.03,
+        "glowWidth": 0.22,
+        "glowIntensity": 2,
+        "emissionStrength": 0.1,
+        "opacity": 0.88,
+        "edgeFade": 0.1,
+        "bottomFade": 0.08,
+        "topFade": 0.28,
+        "centerWidth": 0.82,
+        "auraWidth": 0.32,
+        "auraIntensity": 0.1,
+        "flipY": 0
+      }
+    }
+  }
+}
