@@ -13,11 +13,18 @@ export default class CharacterBlockRise2D extends cc.Component {
     @property({ tooltip: '整体播放速度倍率' })
     playbackSpeed: number = 1.0;
 
+    @property({ tooltip: '单次循环时长（秒）' })
+    cycleDuration: number = 1.0;
+
+    @property({ tooltip: '完成单次循环后是否继续播放' })
+    loopAnimation: boolean = true;
+
     @property({ tooltip: '初始时间偏移；多个实例可填不同值以避免完全同步' })
     startOffset: number = 0;
 
     private _sprite: cc.Sprite = null;
     private _material: cc.MaterialVariant = null;
+    // 传给 Shader 的是 0~1 的归一化循环时间，便于制作无缝的一秒动画。
     private _time: number = 0;
     private _playing: boolean = false;
 
@@ -37,7 +44,7 @@ export default class CharacterBlockRise2D extends cc.Component {
             return;
         }
 
-        this._time = Math.max(0, this.startOffset);
+        this._time = this.toCycleTime(this.startOffset);
         this.applyTime();
         this.refreshLayout();
 
@@ -57,10 +64,14 @@ export default class CharacterBlockRise2D extends cc.Component {
             return;
         }
 
-        this._time += dt * Math.max(0, this.playbackSpeed);
-        // 防止游戏长时间运行后 GPU 浮点精度下降；视觉图案不会因此跳变。
-        if (this._time > 4096) {
-            this._time %= 4096;
+        this._time += dt * Math.max(0, this.playbackSpeed) / this.safeCycleDuration();
+        if (this._time >= 1.0) {
+            if (this.loopAnimation) {
+                this._time %= 1.0;
+            } else {
+                this._time = 0.0;
+                this._playing = false;
+            }
         }
         this.applyTime();
     }
@@ -77,24 +88,24 @@ export default class CharacterBlockRise2D extends cc.Component {
         this._playing = false;
     }
 
-    /** 回到 startOffset 并开始播放。 */
+    /** 回到 startOffset 并开始播放；角色切换时可调用此方法。 */
     restart() {
         if (!this._material) {
             return;
         }
 
-        this._time = Math.max(0, this.startOffset);
+        this._time = this.toCycleTime(this.startOffset);
         this.applyTime();
         this._playing = true;
     }
 
-    /** 外部逻辑可以直接同步时间，例如技能时间轴。 */
+    /** 外部逻辑可以按秒同步时间，例如技能时间轴。 */
     setTime(value: number) {
         if (!this._material) {
             return;
         }
 
-        this._time = Math.max(0, value);
+        this._time = this.toCycleTime(value);
         this.applyTime();
     }
 
@@ -102,6 +113,15 @@ export default class CharacterBlockRise2D extends cc.Component {
         if (this._material) {
             this._material.setProperty('time', this._time);
         }
+    }
+
+    private safeCycleDuration(): number {
+        return Math.max(0.01, this.cycleDuration);
+    }
+
+    private toCycleTime(timeInSeconds: number): number {
+        const cycleTime = Math.max(0, timeInSeconds) / this.safeCycleDuration();
+        return this.loopAnimation ? cycleTime % 1.0 : Math.min(cycleTime, 1.0);
     }
 
     private refreshLayout() {

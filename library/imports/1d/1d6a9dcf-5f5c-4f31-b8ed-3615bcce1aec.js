@@ -34,9 +34,12 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.autoPlay = true;
         _this.playbackSpeed = 1.0;
+        _this.cycleDuration = 1.0;
+        _this.loopAnimation = true;
         _this.startOffset = 0;
         _this._sprite = null;
         _this._material = null;
+        // 传给 Shader 的是 0~1 的归一化循环时间，便于制作无缝的一秒动画。
         _this._time = 0;
         _this._playing = false;
         return _this;
@@ -55,7 +58,7 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
             this.enabled = false;
             return;
         }
-        this._time = Math.max(0, this.startOffset);
+        this._time = this.toCycleTime(this.startOffset);
         this.applyTime();
         this.refreshLayout();
         this.node.on(cc.Node.EventType.SIZE_CHANGED, this.refreshLayout, this);
@@ -71,10 +74,15 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
         if (!this._playing || !this._material) {
             return;
         }
-        this._time += dt * Math.max(0, this.playbackSpeed);
-        // 防止游戏长时间运行后 GPU 浮点精度下降；视觉图案不会因此跳变。
-        if (this._time > 4096) {
-            this._time %= 4096;
+        this._time += dt * Math.max(0, this.playbackSpeed) / this.safeCycleDuration();
+        if (this._time >= 1.0) {
+            if (this.loopAnimation) {
+                this._time %= 1.0;
+            }
+            else {
+                this._time = 0.0;
+                this._playing = false;
+            }
         }
         this.applyTime();
     };
@@ -88,27 +96,34 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
     CharacterBlockRise2D.prototype.pause = function () {
         this._playing = false;
     };
-    /** 回到 startOffset 并开始播放。 */
+    /** 回到 startOffset 并开始播放；角色切换时可调用此方法。 */
     CharacterBlockRise2D.prototype.restart = function () {
         if (!this._material) {
             return;
         }
-        this._time = Math.max(0, this.startOffset);
+        this._time = this.toCycleTime(this.startOffset);
         this.applyTime();
         this._playing = true;
     };
-    /** 外部逻辑可以直接同步时间，例如技能时间轴。 */
+    /** 外部逻辑可以按秒同步时间，例如技能时间轴。 */
     CharacterBlockRise2D.prototype.setTime = function (value) {
         if (!this._material) {
             return;
         }
-        this._time = Math.max(0, value);
+        this._time = this.toCycleTime(value);
         this.applyTime();
     };
     CharacterBlockRise2D.prototype.applyTime = function () {
         if (this._material) {
             this._material.setProperty('time', this._time);
         }
+    };
+    CharacterBlockRise2D.prototype.safeCycleDuration = function () {
+        return Math.max(0.01, this.cycleDuration);
+    };
+    CharacterBlockRise2D.prototype.toCycleTime = function (timeInSeconds) {
+        var cycleTime = Math.max(0, timeInSeconds) / this.safeCycleDuration();
+        return this.loopAnimation ? cycleTime % 1.0 : Math.min(cycleTime, 1.0);
     };
     CharacterBlockRise2D.prototype.refreshLayout = function () {
         if (!this._sprite || !this._sprite.spriteFrame || !this._material) {
@@ -143,6 +158,12 @@ var CharacterBlockRise2D = /** @class */ (function (_super) {
     __decorate([
         property({ tooltip: '整体播放速度倍率' })
     ], CharacterBlockRise2D.prototype, "playbackSpeed", void 0);
+    __decorate([
+        property({ tooltip: '单次循环时长（秒）' })
+    ], CharacterBlockRise2D.prototype, "cycleDuration", void 0);
+    __decorate([
+        property({ tooltip: '完成单次循环后是否继续播放' })
+    ], CharacterBlockRise2D.prototype, "loopAnimation", void 0);
     __decorate([
         property({ tooltip: '初始时间偏移；多个实例可填不同值以避免完全同步' })
     ], CharacterBlockRise2D.prototype, "startOffset", void 0);

@@ -1054,11 +1054,6 @@
     "meta": 1787814783965,
     "relativePath": "resources\\image\\background.png"
   },
-  "e0cb21ec-c942-496b-8c24-15afe91fca24": {
-    "asset": 1787908542842,
-    "meta": 1787908542845,
-    "relativePath": "scene\\magnifyingGlass.fire"
-  },
   "8aa68339-e6d5-4f9c-a3a5-ff8eb9210ca5": {
     "asset": 1787819927160,
     "meta": 1787820569903,
@@ -1074,19 +1069,24 @@
     "meta": 1787822408775,
     "relativePath": "shader\\hologramLoading2D.effect"
   },
+  "9a45c624-87b8-4dfa-bdc2-97a2cd409789": {
+    "asset": 1787911831513,
+    "meta": 1787911853256,
+    "relativePath": "shader\\characterBlockRise2D.mtl"
+  },
   "1d6a9dcf-5f5c-4f31-b8ed-3615bcce1aec": {
-    "asset": 1787907301958,
-    "meta": 1787907621939,
+    "asset": 1787912045691,
+    "meta": 1787912134119,
     "relativePath": "script\\CharacterBlockRise2D.ts"
   },
-  "4f20ed30-df22-4a77-bfab-2e2b8c301fdc": {
-    "asset": 1787907909959,
-    "meta": 1787907992675,
-    "relativePath": "shader\\characterBlockRise2D.effect"
+  "e0cb21ec-c942-496b-8c24-15afe91fca24": {
+    "asset": 1787912325915,
+    "meta": 1787912325920,
+    "relativePath": "scene\\magnifyingGlass.fire"
   },
-  "9a45c624-87b8-4dfa-bdc2-97a2cd409789": {
-    "asset": 1787908573844,
-    "meta": 1787908573847,
-    "relativePath": "shader\\characterBlockRise2D.mtl"
+  "4f20ed30-df22-4a77-bfab-2e2b8c301fdc": {
+    "asset": 1787912702727,
+    "meta": 1787912716971,
+    "relativePath": "shader\\characterBlockRise2D.effect"
   }
 }

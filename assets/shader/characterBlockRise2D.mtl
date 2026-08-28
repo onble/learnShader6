@@ -15,22 +15,22 @@
       "props": {
         "baseColor": {
           "__type__": "cc.Color",
-          "r": 48,
-          "g": 218,
+          "r": 24,
+          "g": 157,
           "b": 255,
           "a": 255
         },
         "accentColor": {
           "__type__": "cc.Color",
-          "r": 0,
-          "g": 26,
+          "r": 26,
+          "g": 75,
           "b": 255,
           "a": 255
         },
         "highlightColor": {
           "__type__": "cc.Color",
-          "r": 255,
-          "g": 255,
+          "r": 156,
+          "g": 224,
           "b": 255,
           "a": 255
         },
@@ -43,21 +43,21 @@
         },
         "blockGrid": {
           "__type__": "cc.Vec2",
-          "x": 8,
-          "y": 15
+          "x": 9,
+          "y": 14
         },
         "time": 0,
         "aspectRatio": 0.62,
         "density": 0.28,
-        "riseSpeed": 0.4,
+        "riseSpeed": 0.72,
         "drift": 0.05,
         "sizeMin": 0.13,
         "sizeMax": 0.34,
         "edgeSoftness": 0.03,
         "glowWidth": 0.22,
-        "glowIntensity": 2,
-        "emissionStrength": 0.1,
-        "opacity": 0.88,
+        "glowIntensity": 2.5,
+        "emissionStrength": 1.65,
+        "opacity": 0.94,
         "edgeFade": 0.1,
         "bottomFade": 0.08,
         "topFade": 0.28,

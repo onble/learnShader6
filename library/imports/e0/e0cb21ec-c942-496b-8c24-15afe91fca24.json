@@ -1652,7 +1652,7 @@
       }
     ],
     "_prefab": null,
-    "_opacity": 158,
+    "_opacity": 255,
     "_color": {
       "__type__": "cc.Color",
       "r": 255,
@@ -1740,7 +1740,9 @@
     },
     "_enabled": true,
     "autoPlay": true,
-    "playbackSpeed": 1,
+    "playbackSpeed": 0.6,
+    "cycleDuration": 1,
+    "loopAnimation": false,
     "startOffset": 0,
     "_id": "b2PqHfkQ1PJILt2d0ObCCq"
   },

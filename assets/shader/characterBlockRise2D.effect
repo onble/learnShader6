@@ -23,10 +23,10 @@ techniques:
           time: { value: 0.0, editor: { tooltip: "动画时间，由 CharacterBlockRise2D 脚本驱动" } }
           aspectRatio: { value: 0.62, editor: { tooltip: "节点宽高比，由脚本自动更新" } }
           density: { value: 0.28, editor: { tooltip: "方块密度" } }
-          riseSpeed: { value: 0.22, editor: { tooltip: "方块向上移动速度" } }
+          riseSpeed: { value: 0.62, editor: { tooltip: "电子屏向上移动速度" } }
           drift: { value: 0.025, editor: { tooltip: "方块左右漂移幅度" } }
-          sizeMin: { value: 0.13, editor: { tooltip: "方块最小半尺寸（相对网格）" } }
-          sizeMax: { value: 0.34, editor: { tooltip: "方块最大半尺寸（相对网格）" } }
+          sizeMin: { value: 0.13, editor: { tooltip: "电子屏最小半高度（相对网格）" } }
+          sizeMax: { value: 0.34, editor: { tooltip: "电子屏最大半高度（相对网格）" } }
           edgeSoftness: { value: 0.035, editor: { tooltip: "方块边缘柔化" } }
           glowWidth: { value: 0.22, editor: { tooltip: "方块外围同色柔光宽度" } }
           glowIntensity: { value: 0.68, editor: { tooltip: "方块外围同色柔光强度" } }
@@ -119,9 +119,9 @@ float hash12(vec2 p) {
   return fract((p3.x + p3.y) * p3.z);
 }
 
-vec3 blockColor(float key) {
+vec3 screenColor(float key) {
   vec3 color = mix(baseColor.rgb, accentColor.rgb, smoothstep(0.32, 0.78, key));
-  return mix(color, highlightColor.rgb, smoothstep(0.84, 1.0, key));
+  return mix(color, highlightColor.rgb, smoothstep(0.9, 1.0, key));
 }
 
 vec4 blockLayer(
@@ -134,14 +134,25 @@ vec4 blockLayer(
 ) {
   grid = max(grid, vec2(1.0));
 
-  // 从采样坐标中减去时间，图案在画面中就会连续向上运动。
-  float movingY = uv.y - time * riseSpeed * speedScale;
+  // 保持末段利落的上升节奏：首尾为 1.30 倍，中段仅轻微降至 0.85 倍。
+  // 两个平滑正弦项首尾均为 0，所以循环时不会产生跳帧。
+  float motionPhase = time
+    + 0.0358099 * sin(time * 6.2831853)
+    + 0.0059683 * sin(time * 12.5663706);
+  float riseCycles = 1.0 + step(0.8, speedScale) + step(1.2, speedScale);
+  float movingY = uv.y - motionPhase * riseCycles;
   vec2 cellPosition = vec2(uv.x, movingY) * grid;
   vec2 cellId = floor(cellPosition);
   vec2 cellUV = fract(cellPosition);
 
+  // 数量从 0 平滑增加到约 9 个视觉碎片，再回到 0，形成一次明确的加载脉冲。
+  float densityWave = sin(time * 3.14159265);
+  float densityEnvelope = 0.24 * densityWave * densityWave;
   float aliveKey = hash12(cellId + vec2(layerSeed, layerSeed * 1.73));
-  float alive = step(1.0 - clamp(density * densityScale, 0.0, 0.98), aliveKey);
+  float alive = step(
+    1.0 - clamp(density * densityScale * densityEnvelope, 0.0, 0.98),
+    aliveKey
+  );
 
   float centerKey = hash12(cellId + vec2(layerSeed * 4.17, 19.31));
   float verticalKey = hash12(cellId + vec2(51.7, layerSeed * 2.9));
@@ -149,40 +160,79 @@ vec4 blockLayer(
     mix(0.34, 0.66, centerKey),
     mix(0.32, 0.68, verticalKey)
   );
-  center.x += sin(time * mix(0.72, 1.28, centerKey) + aliveKey * 6.2831853)
+  float driftFrequency = 1.0 + step(0.5, centerKey);
+  center.x += sin((time * driftFrequency + aliveKey) * 6.2831853)
     * drift
     * grid.x;
 
   float sizeKey = hash12(cellId + vec2(7.13, layerSeed * 8.21));
-  float halfSize = mix(sizeMin, max(sizeMin, sizeMax), sizeKey) * sizeScale;
-  halfSize = clamp(halfSize, 0.025, 0.46);
+  float halfHeight = mix(sizeMin, max(sizeMin, sizeMax), sizeKey) * sizeScale;
+  // 限制最大尺寸，使前半段也维持末段那种轻盈的护盾碎片比例。
+  halfHeight = clamp(halfHeight, 0.025, 0.26);
+
+  // 宽屏比例、不同的呼吸频率，以及只作用于部分方块的宽度变形，
+  // 让它更像不断上传的数据面板而不是规则的像素方块。
+  float shapeKey = hash12(cellId + vec2(29.4, layerSeed * 5.71));
+  float widthRatio = mix(1.20, 2.25, shapeKey);
+  float widthPulseKey = hash12(cellId + vec2(83.6, layerSeed * 3.17));
+  float widthFrequency = 2.0 + 2.0 * step(0.5, widthPulseKey);
+  float widthPulse = 0.82 + 0.48 * (
+    0.5 + 0.5 * sin((time * widthFrequency + widthPulseKey) * 6.2831853)
+  );
+  float animatedPanel = step(0.64, widthPulseKey);
+  float halfWidth = halfHeight * widthRatio * mix(1.0, widthPulse, animatedPanel);
+  halfWidth = clamp(halfWidth, halfHeight * 0.9, 0.47);
 
   // 按节点实际宽高比校正 x，确保非正方形 Sprite 上仍然画出正方块。
   vec2 blockDistance = abs(cellUV - center);
   float cellAspect = max(aspectRatio * grid.y / grid.x, 0.0001);
   blockDistance.x *= cellAspect;
-  float squareDistance = max(blockDistance.x, blockDistance.y) - halfSize;
+  vec2 panelSize = vec2(halfWidth, halfHeight);
+  float panelDistance = max(blockDistance.x - panelSize.x, blockDistance.y - panelSize.y);
 
   float softness = max(edgeSoftness, 0.0001);
-  float core = 1.0 - smoothstep(0.0, softness, squareDistance);
+  float outerPanel = 1.0 - smoothstep(0.0, softness, panelDistance);
+  // 护盾碎片只保留很薄的能量边缘，中心近乎透明，避免形成厚重的实心面板。
+  float frameWidth = clamp(halfHeight * 0.12, 0.010, 0.035);
+  vec2 innerSize = max(panelSize - vec2(frameWidth), vec2(0.006));
+  float innerDistance = max(blockDistance.x - innerSize.x, blockDistance.y - innerSize.y);
+  float innerPanel = 1.0 - smoothstep(0.0, softness, innerDistance);
+  float frame = clamp(outerPanel - innerPanel, 0.0, 1.0);
   float glow = 1.0 - smoothstep(
     softness,
     softness + max(glowWidth, 0.0001),
-    squareDistance
+    panelDistance
   );
 
+  // 能量沿边缘流动：不同碎片的相位不同，视觉会接近光护盾的流光而非 UI 面板。
+  float edgePhase = hash12(cellId + vec2(12.9, layerSeed * 7.3));
+  float energyFrequency = 4.0 + 2.0 * step(0.5, edgePhase);
+  float energyFlow = 0.55 + 0.45 * sin(
+    (cellUV.x * 7.0 + cellUV.y * 5.0 - time * energyFrequency + edgePhase) * 6.2831853
+  );
+  float cornerX = 1.0 - smoothstep(innerSize.x * 0.42, innerSize.x, blockDistance.x);
+  float cornerY = 1.0 - smoothstep(innerSize.y * 0.42, innerSize.y, blockDistance.y);
+  float cornerLight = frame * cornerX * cornerY;
+
+  float pulseFrequency = 2.0 + floor(sizeKey * 3.0);
   float pulse = mix(
     0.76,
     1.0,
-    0.5 + 0.5 * sin(time * mix(2.1, 4.0, sizeKey) + centerKey * 6.2831853)
+    0.5 + 0.5 * sin((time * pulseFrequency + centerKey) * 6.2831853)
   );
-  float alpha = (core + glow * glowIntensity) * alive * pulse;
-  vec3 ownColor = blockColor(hash12(cellId + vec2(layerSeed * 11.7)));
-  // 核心和外围光晕都使用粒子自身颜色；亮度允许大于 1，配合加法混合
-  // 即使未开启 Bloom，也能在背景上形成清晰的自发光观感。
-  float emission = 1.0 + max(emissionStrength, 0.0)
-    * (core * 0.78 + glow * 0.22);
-  return vec4(ownColor * emission, alpha);
+  float alpha = (frame * (0.92 + energyFlow * 0.58)
+    + glow * glowIntensity * 0.46
+    + innerPanel * 0.10) * alive * pulse;
+  vec3 ownColor = screenColor(hash12(cellId + vec2(layerSeed * 11.7)));
+  // 青蓝与紫色互相过渡的能量边缘；内部仅留一层极淡的护盾折射感。
+  vec3 shieldColor = mix(baseColor.rgb, accentColor.rgb, shapeKey);
+  vec3 rimColor = mix(shieldColor, highlightColor.rgb, 0.48 + energyFlow * 0.36);
+  vec3 innerColor = shieldColor * (0.10 + energyFlow * 0.08);
+  vec3 panelColor = rimColor * frame * (1.45 + energyFlow * max(emissionStrength, 0.0));
+  panelColor += highlightColor.rgb * cornerLight * 2.1;
+  panelColor += shieldColor * glow * glowIntensity * 0.78;
+  panelColor += innerColor * innerPanel;
+  return vec4(panelColor, alpha);
 }
 
 void main() {
@@ -190,7 +240,7 @@ void main() {
   vec2 uv = (v_uv0 - uvRect.xy) / uvSize;
   uv.y = mix(1.0 - uv.y, uv.y, step(0.5, flipY));
 
-  // 三层网格让大方块、中方块和细碎小方块以不同速度穿插上升。
+  // 三层电子屏以不同速度穿插上升。
   vec4 farBlocks = blockLayer(
     uv,
     blockGrid * vec2(0.62, 0.62),
@@ -248,7 +298,7 @@ void main() {
     abs(uv.x - 0.5)
   );
   aura *= verticalMask * max(auraIntensity, 0.0);
-  aura *= 0.78 + 0.22 * sin((uv.y * 3.0 - time * riseSpeed) * 6.2831853);
+  aura *= 0.78 + 0.22 * sin((uv.y * 3.0 - time * 2.0) * 6.2831853);
 
   float finalAlpha = max(blocksAlpha, aura) * opacity * v_color.a;
   if (finalAlpha < 0.001) {
